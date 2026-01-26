@@ -1,0 +1,24 @@
+package com.capstone.mapper;
+
+import com.capstone.model.Users;
+import com.capstone.payload.dto.UserDto;
+import com.capstone.payload.response.AuthResponse;
+
+public class UserMapper {
+
+    public static UserDto toDTO(Users savedUser) {
+        UserDto userDto = new UserDto();
+
+
+        userDto.setId(savedUser.getId());
+        userDto.setFullName(savedUser.getFullName());
+        userDto.setEmail(savedUser.getEmail());
+        userDto.setRole(savedUser.getRole());
+        userDto.setCreatedAt(savedUser.getCreatedAt());
+        userDto.setUpdatedAt(savedUser.getUpdatedAt());
+        userDto.setLastLogin(savedUser.getLastLogin());
+        userDto.setPhone(savedUser.getPhone());
+
+        return userDto;
+    }
+}
