@@ -30,10 +30,10 @@ public class ShiftReport {
     @ManyToOne
     private Branch branch;
 
-    //    @OneToMany(mappedBy = "shiftReport", cascade = CascadeType.ALL)
+//    @OneToMany(mappedBy = "shiftReport", cascade = CascadeType.ALL)
 //    @ElementCollection
-//    @Transient
-//    private List<PaymentSummary> paymentSummaries;
+    @Transient
+    private List<PaymentSummary> paymentSummaries;
 
     @OneToMany(cascade = CascadeType.ALL)
     private List<Product> topSellingProducts;
