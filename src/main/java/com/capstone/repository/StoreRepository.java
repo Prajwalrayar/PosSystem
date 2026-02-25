@@ -1,9 +1,36 @@
 package com.capstone.repository;
 
+import com.capstone.domain.StoreStatus;
 import com.capstone.model.Store;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 public interface StoreRepository extends JpaRepository<Store, Long> {
 
     Store findByStoreAdminId(Long adminId);
+
+    List<Store> findByStatus(StoreStatus storeStatus);
+
+    //    analysis
+    Long countByStatus(StoreStatus status);
+
+//    @Query("""
+//        SELECT COUNT(s)
+//        FROM Store s
+//        WHERE DATE(s.createdAt) = :date
+//    """)
+    Long countByDate(LocalDate date);
+
+//    @Query("""
+//    SELECT s.createdAt AS regDate, COUNT(s) AS count
+//    FROM Store s
+//    WHERE s.createdAt >= :startDate
+//    GROUP BY s.createdAt
+//    ORDER BY regDate ASC
+//""")
+    List<Object[]> getStoreRegistrationStats(@Param("startDate") LocalDateTime startDate);
 }
