@@ -2,10 +2,7 @@ package com.capstone.payload.AdminAnalysis;
 
 import lombok.*;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 @Builder
 public class StoreStatusDistributionDto {
     private Long active;
