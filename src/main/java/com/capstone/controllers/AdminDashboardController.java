@@ -31,7 +31,6 @@ public class AdminDashboardController {
     public ResponseEntity<DashboardSummaryDto> getDashboardSummary() {
         return ResponseEntity.ok(adminDashboardService.getDashboardSummary());
     }
-
     /**
      * 📈 Get number of store registrations in the last 7 days
      * Used for 📅 chart data (line/bar)
