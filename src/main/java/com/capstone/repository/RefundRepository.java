@@ -21,11 +21,8 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
     List<Refund> findByBranchId(Long branchId);
 
     //    store analysis
-    @Query("SELECT COUNT(r) FROM Refund r WHERE r.order.branch.store.storeAdmin.id = :storeAdminId")
-    int countByStoreAdminId(@Param("storeAdminId") Long storeAdminId);
 //
 //    @Query("""
-//          SELECT new com.capstone.payload.dto.RefundDto(
 //                  r.id,
 //                  r.order.id,
 //                  r.reason,
@@ -43,7 +40,10 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
 //                         r.order.branch.id, r.createdAt
 //            HAVING SUM(r.amount) > 5000
 //    """)
-@Query("""
+    @Query("SELECT COUNT(r) FROM Refund r WHERE r.order.branch.store.storeAdmin.id = :storeAdminId")
+    int countByStoreAdminId(@Param("storeAdminId") Long storeAdminId);
+
+    @Query("""
           SELECT r.reason FROM Refund r
             WHERE r.order.branch.store.storeAdmin.id = :storeAdminId
             GROUP BY FUNCTION('DATE', r.createdAt)
