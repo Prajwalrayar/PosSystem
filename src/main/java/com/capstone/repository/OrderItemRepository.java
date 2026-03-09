@@ -22,7 +22,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
 
     @Query("""
-        SELECT c.name, SUM(oi.quantity * oi.price) as totalAmount, SUM(oi.quantity)
+        SELECT c.name, SUM(oi.quantity * oi.price) as totalAmount
         FROM OrderItem oi
         JOIN oi.product p
         JOIN p.category c
