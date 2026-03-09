@@ -101,8 +101,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 //
 
     @Query("""
-    SELECT o FROM Order o 
-    WHERE o.branch.store.storeAdmin.id = :storeAdminId 
+    SELECT o FROM Order o
+    WHERE o.branch.store.storeAdmin.id = :storeAdminId
     AND o.createdAt BETWEEN :start AND :end
 """)
     List<Order> findAllByStoreAdminAndCreatedAtBetween(@Param("storeAdminId") Long storeAdminId,
@@ -137,15 +137,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<PaymentInsightDto> getSalesByPaymentMethod(@Param("storeAdminId") Long storeAdminId);
 
 
-//    @Query("""
-//        SELECT new com.capstone.payload.StoreAnalysis.BranchSalesDTO(
-//            o.branch.name,
-//            SUM(o.totalAmount)
-//        )
-//        FROM Order o
-//        WHERE o.branch.store.storeAdmin.id = :storeAdminId
-//        GROUP BY o.branch.id
-//    """)
-//    List<BranchSalesDto> getSalesByBranch(@Param("storeAdminId") Long storeAdminId);
+    @Query("""
+        SELECT new com.capstone.payload.StoreAnalysis.BranchSalesDto(
+            o.branch.name,
+            SUM(o.totalAmount)
+        )
+        FROM Order o
+        WHERE o.branch.store.storeAdmin.id = :storeAdminId
+        GROUP BY o.branch.id
+    """)
+    List<BranchSalesDto> getSalesByBranch(@Param("storeAdminId") Long storeAdminId);
 
 }

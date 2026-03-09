@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class TimeSeriesPointDto {
     private LocalDateTime date;
     private Double totalAmount;
