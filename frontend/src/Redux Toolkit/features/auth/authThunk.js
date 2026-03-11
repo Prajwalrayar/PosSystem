@@ -11,7 +11,7 @@ export const signup = createAsyncThunk(
       console.log("Signup success:", res.data.data);
       return res.data.data;
     } catch (err) {
-      console.error("Signup error:", err);
+      console.error("Signup error: ", err);
       return rejectWithValue(err.response?.data?.message || "Signup failed");
     }
   }
@@ -20,11 +20,11 @@ export const signup = createAsyncThunk(
 // ✅ Login
 export const login = createAsyncThunk(
   "auth/login",
-  async (credentials, { rejectWithValue }) => {
+  async (loginData, { rejectWithValue }) => {
 
-    console.log("Credentials:", credentials);
+    console.log("Login data:", loginData);
     try {
-      const res = await api.post("/auth/login", credentials);
+      const res = await api.post("/auth/login", loginData );
       const data = res.data.data;
       console.log("Login success:", data);
       localStorage.setItem("jwt", data.jwt);
