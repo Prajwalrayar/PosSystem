@@ -1,11 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import {
-  createCustomer,
-  updateCustomer,
-  deleteCustomer,
-  getCustomerById,
-  getAllCustomers
-} from './customerThunks';
+import { createCustomer, updateCustomer, deleteCustomer, getCustomerById, getAllCustomers} from './customerThunks';
 
 const initialState = {
   customers: [],
@@ -32,10 +26,12 @@ const customerSlice = createSlice({
       // Create Customer
       .addCase(createCustomer.pending, (state) => {
         state.loading = true;
+        state.customers = [];
       })
       .addCase(createCustomer.fulfilled, (state, action) => {
         state.loading = false;
-        state.customers.push(action.payload);
+        state.customers = (action.payload);
+        // state.customers.push(action.payload);
       })
       .addCase(createCustomer.rejected, (state, action) => {
         state.loading = false;
@@ -56,10 +52,12 @@ const customerSlice = createSlice({
           state.selectedCustomer = action.payload;
         }
       })
+
       .addCase(updateCustomer.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
+
 
       // Delete Customer
       .addCase(deleteCustomer.pending, (state) => {
@@ -77,6 +75,7 @@ const customerSlice = createSlice({
         state.error = action.payload;
       })
 
+
       // Get Customer by ID
       .addCase(getCustomerById.pending, (state) => {
         state.loading = true;
@@ -90,6 +89,7 @@ const customerSlice = createSlice({
         state.error = action.payload;
       })
 
+       
       // Get All Customers
       .addCase(getAllCustomers.pending, (state) => {
         state.loading = true;
