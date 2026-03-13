@@ -1,23 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import api from '@/utils/api';
-
-// Helper function to get JWT token
-const getAuthToken = () => {
-  const token = localStorage.getItem('jwt');
-  if (!token) {
-    throw new Error('No JWT token found');
-  }
-  return token;
-};
-
-// Helper function to set auth headers
-const getAuthHeaders = () => {
-  const token = getAuthToken();
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-};
+import { getAuthHeaders } from '@/utils/getAuthHeaders';
 
 // 🔹 Create Order
 export const createOrder = createAsyncThunk(
