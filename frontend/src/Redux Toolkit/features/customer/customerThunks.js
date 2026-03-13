@@ -3,18 +3,18 @@ import api from '@/utils/api';
 
 // Helper function to get JWT token
 const getAuthToken = () => {
-  const token = localStorage.getItem('jwt');
-  if (!token) {
+  const jwt = localStorage.getItem('jwt');
+  if (!jwt) {
     throw new Error('No JWT token found');
   }
-  return token;
+  return jwt;
 };
 
 // Helper function to set auth headers
 const getAuthHeaders = () => {
-  const token = getAuthToken();
+  const jwt = getAuthToken();
   return {
-    'Authorization': `Bearer ${token}`,
+    'Authorization': `Bearer ${jwt }`,
     'Content-Type': 'application/json',
   };
 };
@@ -144,7 +144,7 @@ export const getAllCustomers = createAsyncThunk(
       const headers = getAuthHeaders();
       const res = await api.get('/api/customers', { headers });
       
-      console.log('✅ All customers fetched successfully:', {
+      console.log('✅ All customers are fetched successfully:', {
         customerCount: res.data.length,
         customers:res.data
       });
