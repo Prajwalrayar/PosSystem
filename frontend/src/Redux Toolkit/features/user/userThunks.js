@@ -44,24 +44,22 @@ export const getCashiers = createAsyncThunk('user/getCashiers', async (token, { 
   }
 });
 
-// // 🔹 Get all users
-// export const getAllUsers = createAsyncThunk('user/getAll', async (_, { rejectWithValue }) => {
-//   try {
-//     const res = await api.get('/users/list');
-//     console.log('Get all users success:', res.data);
-//     return res.data;
-//   } catch (err) {
-//     console.error('Get all users error:', err);
-//     return rejectWithValue(err.response?.data?.message || 'Failed to fetch users');
-//   }
-// });
+// 🔹 Get all users
+export const getAllUsers = createAsyncThunk('user/getAll', async (_, { rejectWithValue }) => {
+  try {
+    const res = await api.get('/users/list');
+    console.log('Get all users success:', res.data);
+    return res.data;
+  } catch (err) {
+    console.error('Get all users error:', err);
+    return rejectWithValue(err.response?.data?.message || 'Failed to fetch users');
+  }
+});
 
 // 🔹 Get user by ID
 export const getUserById = createAsyncThunk('user/getById', async (userId, { rejectWithValue }) => {
   try {
-    const res = await api.get(`/api/users/${userId}`,
-    { headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}`},
-  });
+    const res = await api.get(`/users/${userId}`);
     console.log('Get user by ID success:', res.data);
     return res.data;
   } catch (err) {
