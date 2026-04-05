@@ -1,5 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
-import {createOrder, getOrderById, getOrdersByBranch, getOrdersByCashier, getTodayOrdersByBranch, deleteOrder, getOrdersByCustomer, getRecentOrdersByBranch } from './orderThunks';
+import {
+  createOrder,
+  getOrderById,
+  getOrdersByBranch,
+  getOrdersByCashier,
+  getTodayOrdersByBranch,
+  deleteOrder,
+  getOrdersByCustomer,
+  getRecentOrdersByBranch
+} from './orderThunks';
 
 const initialState = {
   orders: [],
@@ -45,7 +54,6 @@ const orderSlice = createSlice({
         state.selectedOrder = action.payload;
       })
 
-
       .addCase(getOrdersByBranch.fulfilled, (state, action) => {
         state.orders = action.payload;
       })
@@ -55,22 +63,18 @@ const orderSlice = createSlice({
         console.log("get order by cashier ", action.payload);
       })
 
-
       .addCase(getTodayOrdersByBranch.fulfilled, (state, action) => {
         state.todayOrders = action.payload;
       })
-
 
       .addCase(getOrdersByCustomer.fulfilled, (state, action) => {
         state.customerOrders = action.payload;
       })
 
-
       .addCase(getRecentOrdersByBranch.fulfilled, (state, action) => {
         state.recentOrders = action.payload;
       })
 
-      
       .addCase(deleteOrder.fulfilled, (state, action) => {
         state.orders = state.orders.filter((o) => o.id !== action.payload);
       })
