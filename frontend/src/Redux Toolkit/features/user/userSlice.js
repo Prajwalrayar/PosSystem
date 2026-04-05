@@ -33,11 +33,7 @@ const userSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getUserProfile.pending, (state) => { 
-        state.loading = true;
-        state.error = null;
-        state.userProfile = null; 
-      })
+      .addCase(getUserProfile.pending, (state) => { state.loading = true; })
       .addCase(getUserProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.userProfile = action.payload;
@@ -47,7 +43,6 @@ const userSlice = createSlice({
         state.error = action.payload;
       })
 
-
       .addCase(getCustomers.fulfilled, (state, action) => {
         state.customers = action.payload;
       })
@@ -56,6 +51,9 @@ const userSlice = createSlice({
         state.cashiers = action.payload;
       })
 
+      .addCase(getAllUsers.fulfilled, (state, action) => {
+        state.users = action.payload;
+      })
 
       .addCase(getUserById.fulfilled, (state, action) => {
         state.selectedUser = action.payload;
