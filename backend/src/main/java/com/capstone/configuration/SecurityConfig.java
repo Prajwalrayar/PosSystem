@@ -50,6 +50,7 @@ public PasswordEncoder passwordEncoder() {
                 CorsConfiguration cfg = new CorsConfiguration();
                 cfg.setAllowedOrigins(
                         Arrays.asList(
+                                "http://localhost:5173",
                                 "http://localhost:8080"
                         )
                 );
