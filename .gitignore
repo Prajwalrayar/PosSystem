@@ -1,4 +1,42 @@
-/target
-/.idea
+# IDE and editor files
+.idea/
+**/.idea/
+.vscode/
+**/.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Build outputs
+target/
+**/target/
+build/
+**/build/
+dist/
+**/dist/
+dist-ssr/
+coverage/
+out/
+
+# Dependency directories
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Python artifacts
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# OS / local files
+.DS_Store
+Thumbs.db
 *.log
 .env
+.env.*
+*.local
