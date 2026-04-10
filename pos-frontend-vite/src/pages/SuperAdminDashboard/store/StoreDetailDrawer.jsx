@@ -35,6 +35,17 @@ export default function StoreDetailDrawer({
 }) {
   if (!store) return null;
 
+  const ownerName =
+    store.storeAdmin?.fullName ||
+    store.storeAdmin?.username ||
+    store.storeAdmin?.email ||
+    "Name not available";
+  const ownerPhone =
+    store.storeAdmin?.phone || store.contact?.phone || "Phone not provided";
+  const ownerEmail =
+    store.storeAdmin?.email || store.contact?.email || "Email not provided";
+  const storeAddress = store.contact?.address || store.address || "Address not provided";
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
@@ -92,15 +103,15 @@ export default function StoreDetailDrawer({
             <CardContent className="space-y-3">
               <div className="flex items-center gap-3">
                 <User className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">{store.storeAdmin?.fullName}</span>
+                <span className="font-medium">{ownerName}</span>
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-muted-foreground" />
-                <span>{store.contact?.phone}</span>
+                <span>{ownerPhone}</span>
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-muted-foreground" />
-                <span>{store.contact?.email}</span>
+                <span>{ownerEmail}</span>
               </div>
             </CardContent>
           </Card>
@@ -120,7 +131,7 @@ export default function StoreDetailDrawer({
               </div>
               <div className="flex items-center gap-3">
                 <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span>{store.address || "Address not provided"}</span>
+                <span>{storeAddress}</span>
               </div>
               <div className="flex items-center gap-3">
                 <Calendar className="w-4 h-4 text-muted-foreground" />

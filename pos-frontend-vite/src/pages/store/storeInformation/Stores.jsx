@@ -22,10 +22,9 @@ export default function Stores() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (store?.id) {
-      fetchStoreData();
-    }
-  }, [dispatch, user]);
+    if (!user) return;
+    fetchStoreData();
+  }, [user]);
   
   useEffect(() => {
     if (store) {
