@@ -3,10 +3,10 @@ spring:
     name: pos-system
 
   datasource:
-    url: jdbc:mysql://localhost:3306/cp_test
+    url: ${DB_URL:jdbc:mysql://localhost:3306/cp_test}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: Suhas@123
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:Suhas@123}
 
   jpa:
     hibernate:
@@ -14,16 +14,16 @@ spring:
     show-sql: true
 
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: your email
-    password: your gmail app password
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:prajwalrayar363@gmail.com}
+    password: ${MAIL_PASSWORD:ezmi lpao mvxf dnvg}
     properties:
       mail:
         smtp:
-          auth: true
+          auth: ${MAIL_SMTP_AUTH:true}
           starttls:
-            enable: true
+            enable: ${MAIL_SMTP_STARTTLS:true}
 
   devtools:
     livereload:
@@ -34,20 +34,23 @@ server:
 
 razorpay:
   api:
-    key: your razorpay key
-    secret: provide yor razorpay secrate
+    key: ${RAZORPAY_API_KEY:}
+    secret: ${RAZORPAY_API_SECRET:}
 
 
 
 stripe:
   api:
-    key: provide your stripe api key
+    key: ${STRIPE_API_KEY:}
 
 gemini:
   api:
-    key: provide your gemin api key optional
+    key: ${GEMINI_API_KEY:}
 
 app:
+  brand-name: ${APP_BRAND_NAME:SmartPos}
+  mail:
+    from-name: ${MAIL_FROM_NAME:SmartPos}
   frontend:
     reset-url: http://localhost:5173/auth/reset-password?token=
 

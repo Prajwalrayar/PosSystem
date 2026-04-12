@@ -3,23 +3,23 @@ import { Card, CardContent } from '../../../../components/ui/card'
 
 const CustomerInformation = ({selectedOrder}) => {
   return (
-       <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-2">Customer Information</h3>
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
+       <Card className="min-w-0">
+          <CardContent className="p-3 sm:p-4">
+            <h3 className="mb-2 text-sm font-semibold sm:text-base">Customer Information</h3>
+            <div className="space-y-1 text-xs sm:text-sm">
+              <div className="flex items-start justify-between gap-3">
                 <span className="text-muted-foreground">Name:</span>
-                <span>
+                <span className="text-right break-words">
                   {selectedOrder.customer?.fullName || "Walk-in Customer"}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <span className="text-muted-foreground">Phone:</span>
-                <span>{selectedOrder.customer?.phone || "N/A"}</span>
+                <span className="text-right break-words">{selectedOrder.customer?.phone || "N/A"}</span>
               </div>
-                 <div className="flex justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <span className="text-muted-foreground">Email:</span>
-                <span>{selectedOrder.customer?.email || "N/A"}</span>
+                <span className="text-right break-all">{selectedOrder.customer?.email || "N/A"}</span>
               </div>
             </div>
           </CardContent>

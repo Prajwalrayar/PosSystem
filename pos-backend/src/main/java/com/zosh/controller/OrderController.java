@@ -4,7 +4,11 @@ import com.zosh.domain.OrderStatus;
 import com.zosh.domain.PaymentType;
 import com.zosh.exception.UserException;
 import com.zosh.payload.dto.OrderDTO;
+import com.zosh.payload.request.CompletePaymentRequest;
+import com.zosh.payload.response.ApiResponseBody;
+import com.zosh.payload.response.InvoiceResponse;
 import com.zosh.service.OrderService;
+import com.zosh.service.InvoiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.jaxb.SpringDataJaxb;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +23,7 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final InvoiceService invoiceService;
 
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_CASHIER')")
@@ -76,6 +81,16 @@ public class OrderController {
     public ResponseEntity<Void> deleteOrder(@PathVariable("id") Long id) {
         orderService.deleteOrder(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/complete-payment")
+    @PreAuthorize("hasAnyAuthority('ROLE_BRANCH_CASHIER', 'ROLE_CASHIER', 'ROLE_BRANCH_MANAGER', 'ROLE_BRANCH_ADMIN')")
+    public ResponseEntity<ApiResponseBody<InvoiceResponse>> completePayment(
+            @PathVariable("id") Long orderId,
+            @RequestBody CompletePaymentRequest request
+    ) throws Exception {
+        InvoiceResponse response = invoiceService.completePaymentAndCreateInvoice(orderId, request);
+        return ResponseEntity.ok(new ApiResponseBody<>(true, "Invoice created successfully", response));
     }
 
 
