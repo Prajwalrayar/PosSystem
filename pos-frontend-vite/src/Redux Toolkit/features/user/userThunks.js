@@ -71,7 +71,10 @@ export const getUserById = createAsyncThunk('user/getById', async (userId, { rej
 // 🔹 Logout user
 export const logout = createAsyncThunk('user/logout', async (_, { rejectWithValue }) => {
   try {
+    sessionStorage.removeItem('jwt');
+    sessionStorage.removeItem('token');
     localStorage.removeItem('jwt');
+    localStorage.removeItem('token');
     // Optionally, clear other relevant local storage items or session data
     console.log('User logged out successfully');
     return 'Logged out successfully';

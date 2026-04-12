@@ -80,7 +80,6 @@ const ExtraFeaturesList = memo(({ values, handleExtraFeatureChange, handleRemove
           type="button"
           variant="ghost"
           onClick={() => handleRemoveExtraFeature(idx)}
-          disabled={values.extraFeatures.length === 1}
         >
           Remove
         </Button>
@@ -157,6 +156,7 @@ const EditPlanDialog = ({ open, onOpenChange, plan, onSuccess }) => {
       setFieldValue('extraFeatures', arr);
     };
     const handleRemoveExtraFeature = idx => {
+      if (!Array.isArray(values.extraFeatures) || values.extraFeatures.length === 0) return;
       const arr = values.extraFeatures.filter((_, i) => i !== idx);
       setFieldValue('extraFeatures', arr);
     };

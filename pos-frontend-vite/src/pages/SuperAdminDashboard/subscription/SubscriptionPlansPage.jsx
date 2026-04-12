@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useSearchParams } from "react-router";
 // import { Button } from '@/src/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -32,21 +33,19 @@ const BILLING_CYCLES = [
 ];
 
 const FEATURE_FLAGS = [
-  { key: "advancedReports", label: "Advanced Reports", icon: "✅" },
-  { key: "inventory", label: "Inventory System", icon: "📦" },
-  { key: "integrations", label: "Integrations", icon: "🔗" },
-  { key: "ecommerce", label: "eCommerce", icon: "🛒" },
-  { key: "invoiceBranding", label: "Invoice Branding", icon: "🧾" },
-  { key: "prioritySupport", label: "Priority Support", icon: "🛠️" },
-  { key: "multiLocation", label: "Multi-location", icon: "📍" },
+  { key: "enableAdvancedReports", label: "Advanced Reports" },
+  { key: "enableInventory", label: "Inventory System" },
+  { key: "enableIntegrations", label: "Integrations" },
+  { key: "enableEcommerce", label: "eCommerce" },
+  { key: "enableInvoiceBranding", label: "Invoice Branding" },
+  { key: "prioritySupport", label: "Priority Support" },
+  { key: "enableMultiLocation", label: "Multi-location" },
 ];
 
-function getFeatureBadges(plan) {
-  return FEATURE_FLAGS.filter((f) => plan[f.key]).map((f) => (
-    <Tooltip key={f.key} content={f.label}>
-      <span style={{ marginRight: 4, fontSize: 18 }}>{f.icon}</span>
-    </Tooltip>
-  ));
+function getFeatureCount(plan) {
+  const enabledCoreFeatures = FEATURE_FLAGS.filter((f) => Boolean(plan?.[f.key])).length;
+  const extraFeaturesCount = Array.isArray(plan?.extraFeatures) ? plan.extraFeatures.length : 0;
+  return enabledCoreFeatures + extraFeaturesCount;
 }
 
 const columns = [
@@ -63,6 +62,8 @@ const columns = [
 
 const SubscriptionPlansPage = () => {
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+  const querySearch = searchParams.get("q") || "";
   
   const { plans, error } = useSelector(
     (state) => state.subscriptionPlan
@@ -83,14 +84,15 @@ const SubscriptionPlansPage = () => {
 
   const filteredPlans = useMemo(() => {
     let filtered = plans;
-    if (search) {
+    const activeSearch = querySearch || search;
+    if (activeSearch) {
       filtered = filtered.filter((plan) =>
-        plan.name.toLowerCase().includes(search.toLowerCase())
+        plan.name.toLowerCase().includes(activeSearch.toLowerCase())
       );
     }
 
     return filtered;
-  }, [plans, search]);
+  }, [plans, search, querySearch]);
 
   const handleDelete = async (id) => {
     if (
@@ -235,8 +237,7 @@ const SubscriptionPlansPage = () => {
                   </div>
                 </TableCell>
                 <TableCell className="px-4 py-2  ">
-                
-                  {getFeatureBadges(plan)}
+                  {getFeatureCount(plan)}
                 </TableCell>
                 <TableCell className="px-4 py-2 flex gap-2">
                   

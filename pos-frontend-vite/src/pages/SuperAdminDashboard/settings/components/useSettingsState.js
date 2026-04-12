@@ -7,11 +7,27 @@ import {
   changePassword,
 } from "@/Redux Toolkit/features/user/userThunks";
 import { clearPasswordChangeState, clearProfileUpdateState } from "@/Redux Toolkit/features/user/userSlice";
+import {
+  fetchSuperAdminSettings,
+  updateNotificationSettings,
+  updateSystemSettings,
+} from "@/Redux Toolkit/features/superAdminSettings/superAdminSettingsThunks";
+import {
+  setNotificationSettingField,
+  setSystemSettingField,
+} from "@/Redux Toolkit/features/superAdminSettings/superAdminSettingsSlice";
 import { getApiErrorMessage } from "@/utils/apiError";
 
 export const useSettingsState = () => {
   const dispatch = useDispatch();
   const { userProfile, loading, profileUpdateStatus, passwordChangeStatus } = useSelector((state) => state.user);
+  const {
+    notificationSettings,
+    systemSettings,
+    loading: settingsLoading,
+    savingNotification,
+    savingSystem,
+  } = useSelector((state) => state.superAdminSettings);
   const { toast } = useToast();
 
   const [profileData, setProfileData] = useState({
@@ -25,6 +41,7 @@ export const useSettingsState = () => {
     if (token) {
       dispatch(getUserProfile(token));
     }
+    dispatch(fetchSuperAdminSettings());
   }, [dispatch]);
 
   useEffect(() => {
@@ -52,20 +69,20 @@ export const useSettingsState = () => {
     confirm: false,
   });
 
-  const [notifications, setNotifications] = useState({
+  const notifications = notificationSettings || {
     newStoreRequests: true,
     storeApprovals: true,
     commissionUpdates: false,
     systemAlerts: true,
     emailNotifications: true,
-  });
+  };
 
-  const [systemSettings, setSystemSettings] = useState({
+  const resolvedSystemSettings = systemSettings || {
     autoApproveStores: false,
     requireDocumentVerification: true,
     commissionAutoCalculation: true,
     maintenanceMode: false,
-  });
+  };
 
   const handleProfileUpdate = async () => {
     if (!profileData.fullName?.trim()) {
@@ -164,18 +181,44 @@ export const useSettingsState = () => {
     }
   };
 
-  const handleNotificationToggle = (key) => {
-    setNotifications((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  const handleNotificationChange = (field, value) => {
+    dispatch(setNotificationSettingField({ field, value }));
   };
 
-  const handleSystemSettingToggle = (key) => {
-    setSystemSettings((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  const handleSystemSettingChange = (field, value) => {
+    dispatch(setSystemSettingField({ field, value }));
+  };
+
+  const handleNotificationSave = async () => {
+    try {
+      await dispatch(updateNotificationSettings(notifications)).unwrap();
+      toast({
+        title: "Notification Settings Saved",
+        description: "Notification preferences updated successfully.",
+      });
+    } catch (errorPayload) {
+      toast({
+        title: "Save Failed",
+        description: getApiErrorMessage(errorPayload),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSystemSettingsSave = async () => {
+    try {
+      await dispatch(updateSystemSettings(resolvedSystemSettings)).unwrap();
+      toast({
+        title: "System Settings Saved",
+        description: "System preferences updated successfully.",
+      });
+    } catch (errorPayload) {
+      toast({
+        title: "Save Failed",
+        description: getApiErrorMessage(errorPayload),
+        variant: "destructive",
+      });
+    }
   };
 
   const handleProfileFieldChange = (field, value) => {
@@ -195,14 +238,19 @@ export const useSettingsState = () => {
     loading,
     profileUpdateStatus,
     passwordChangeStatus,
+    settingsLoading,
+    savingNotification,
+    savingSystem,
     passwordData,
     showPasswords,
     notifications,
-    systemSettings,
+    systemSettings: resolvedSystemSettings,
     handleProfileUpdate,
     handlePasswordChange,
-    handleNotificationToggle,
-    handleSystemSettingToggle,
+    handleNotificationChange,
+    handleSystemSettingChange,
+    handleNotificationSave,
+    handleSystemSettingsSave,
     handleProfileFieldChange,
     handlePasswordFieldChange,
     handleShowPasswordToggle

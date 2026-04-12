@@ -42,6 +42,9 @@ const EditStoreForm = ({ initialValues, onSubmit, onCancel, isSubmitting }) => {
               <Label htmlFor="storeType">Store Type *</Label>
               <Field name="storeType">
                 {({ field, form }) => (
+                  (() => {
+                    const hasCurrentTypeOption = STORE_TYPE_OPTIONS.some((option) => option.value === field.value);
+                    return (
                   <Select
                     value={field.value}
                     onValueChange={(value) => form.setFieldValue(field.name, value)}
@@ -54,6 +57,9 @@ const EditStoreForm = ({ initialValues, onSubmit, onCancel, isSubmitting }) => {
                       <SelectValue placeholder="Select store type" />
                     </SelectTrigger>
                     <SelectContent>
+                      {field.value && !hasCurrentTypeOption && (
+                        <SelectItem value={field.value}>{field.value}</SelectItem>
+                      )}
                       {STORE_TYPE_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
@@ -61,6 +67,8 @@ const EditStoreForm = ({ initialValues, onSubmit, onCancel, isSubmitting }) => {
                       ))}
                     </SelectContent>
                   </Select>
+                    );
+                  })()
                 )}
               </Field>
               <ErrorMessage name="storeType" component="div" className="text-red-500 text-sm mt-1" />

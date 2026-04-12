@@ -20,36 +20,58 @@ const BRANCH_REQUIRED_ROLES = [
   "ROLE_BRANCH_CASHIER",
 ];
 
+const STORE_CREATE_ALLOWED_ROLES = ["ROLE_BRANCH_MANAGER", "ROLE_BRANCH_CASHIER"];
+
+const CREATE_STORE_CONTEXT = "store-create";
+const CREATE_BRANCH_MANAGER_CONTEXT = "branch-manager-create";
+const EDIT_BRANCH_MANAGER_CONTEXT = "branch-manager-edit";
+
+const EmployeeForm = ({ initialData, onSubmit, roles, formContext, currentBranchId }) => {
+  const dispatch = useDispatch();
+  const { branches } = useSelector((state) => state.branch);
+  const { store } = useSelector((state) => state.store);
+
+  const isStoreCreateContext = formContext === CREATE_STORE_CONTEXT;
+  const isBranchManagerCreateContext = formContext === CREATE_BRANCH_MANAGER_CONTEXT;
+  const isBranchManagerEditContext = formContext === EDIT_BRANCH_MANAGER_CONTEXT;
+  const isBranchManagerScopedContext = isBranchManagerCreateContext || isBranchManagerEditContext;
+  const showRoleField = !isBranchManagerScopedContext;
+  const roleOptions = isStoreCreateContext ? STORE_CREATE_ALLOWED_ROLES : (roles || []);
+
   const validationSchema = Yup.object({
     fullName: Yup.string().required("Employee name is required"),
     email: Yup.string()
       .email("Invalid email address")
       .required("Email is required"),
     phone: Yup.string().required("Phone number is required"),
-    role: Yup.string().required("Role is required"),
-    branchId: Yup.string().when("role", {
-      is: (role) => BRANCH_REQUIRED_ROLES.includes(role),
-      then: (schema) => schema.required("Branch is required"),
-      otherwise: (schema) => schema.notRequired(),
-    }),
+    role: showRoleField
+      ? Yup.string()
+          .oneOf(roleOptions.length ? roleOptions : BRANCH_REQUIRED_ROLES)
+          .required("Role is required")
+      : Yup.string().notRequired(),
+    branchId: isBranchManagerScopedContext
+      ? Yup.string().notRequired()
+      : isStoreCreateContext
+      ? Yup.string().required("Branch is required")
+      : Yup.string().when("role", {
+          is: (role) => BRANCH_REQUIRED_ROLES.includes(role),
+          then: (schema) => schema.required("Branch is required"),
+          otherwise: (schema) => schema.notRequired(),
+        }),
     password: Yup.string()
       .min(8, "Password must be at least 8 characters")
       .required("Password is required"),
   });
 
-const EmployeeForm = ({ initialData, onSubmit, roles }) => {
-  const dispatch = useDispatch();
-  const { branches } = useSelector((state) => state.branch);
-  const { store } = useSelector((state) => state.store);
-
   useEffect(() => {
+    if (!isStoreCreateContext) return;
     dispatch(
       getAllBranchesByStore({
         storeId: store?.id,
         jwt: localStorage.getItem("jwt"),
       })
     );
-  }, [dispatch, store?.id]);
+  }, [dispatch, isStoreCreateContext, store?.id]);
 
 
 
@@ -61,16 +83,27 @@ const EmployeeForm = ({ initialData, onSubmit, roles }) => {
       email: "",
       password: "",
       phone: "",
-      role: "",
-      branchId: initialData ? String(initialData.branchId) : "",
+      role: isBranchManagerCreateContext
+        ? "ROLE_BRANCH_CASHIER"
+        : isStoreCreateContext
+        ? STORE_CREATE_ALLOWED_ROLES[0]
+        : initialData?.role || "",
+      branchId: isBranchManagerScopedContext
+        ? String(currentBranchId || "")
+        : initialData?.branchId
+        ? String(initialData.branchId)
+        : "",
     },
     validationSchema: validationSchema,
     onSubmit: (values) => {
-      onSubmit(values);
+      const normalizedValues = {
+        ...values,
+        role: isBranchManagerScopedContext ? "ROLE_BRANCH_CASHIER" : values.role,
+        branchId: isBranchManagerScopedContext ? String(currentBranchId || "") : values.branchId,
+      };
+      onSubmit(normalizedValues);
     },
   });
-
-  const isBranchRole = BRANCH_REQUIRED_ROLES.includes(formik.values.role);
 
   useEffect(() => {
     if (initialData) {
@@ -82,9 +115,27 @@ const EmployeeForm = ({ initialData, onSubmit, roles }) => {
             : "",
       });
     } else {
-      formik.resetForm();
+      formik.resetForm({
+        values: {
+          fullName: "",
+          email: "",
+          password: "",
+          phone: "",
+          role: isBranchManagerCreateContext
+            ? "ROLE_BRANCH_CASHIER"
+            : isStoreCreateContext
+            ? STORE_CREATE_ALLOWED_ROLES[0]
+            : "",
+          branchId: isBranchManagerScopedContext
+            ? String(currentBranchId || "")
+            : "",
+        },
+      });
     }
-  }, [initialData]);
+  }, [initialData, isBranchManagerCreateContext, isBranchManagerScopedContext, isStoreCreateContext, currentBranchId]);
+
+  const isBranchRole = BRANCH_REQUIRED_ROLES.includes(formik.values.role);
+  const shouldShowBranchSelector = isStoreCreateContext || (!isBranchManagerScopedContext && isBranchRole);
 
   return (
     <form onSubmit={formik.handleSubmit} className="space-y-4 py-2 pr-2">
@@ -147,35 +198,37 @@ const EmployeeForm = ({ initialData, onSubmit, roles }) => {
         ) : null}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="role">Role</Label>
-          <Select
-            value={formik.values.role}
-            onValueChange={(value) => {
-            formik.setFieldValue("role", value);
-            if (!BRANCH_REQUIRED_ROLES.includes(value)) {
-              formik.setFieldValue("branchId", "");
-            }
-          }}
-            onOpenChange={() => formik.setFieldTouched("role", true)}
-            className="w-full"
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select role" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles?.map((role) => (
-                <SelectItem key={role} value={role}>
-                  {role}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {formik.touched.role && formik.errors.role ? (
-            <div className="text-red-500 text-sm">{formik.errors.role}</div>
-          ) : null}
-        </div>
-        {isBranchRole && (
+        {showRoleField && (
+          <div className="space-y-2">
+            <Label htmlFor="role">Role</Label>
+            <Select
+              value={formik.values.role}
+              onValueChange={(value) => {
+                formik.setFieldValue("role", value);
+                if (!BRANCH_REQUIRED_ROLES.includes(value)) {
+                  formik.setFieldValue("branchId", "");
+                }
+              }}
+              onOpenChange={() => formik.setFieldTouched("role", true)}
+              className="w-full"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                {roleOptions.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {formik.touched.role && formik.errors.role ? (
+              <div className="text-red-500 text-sm">{formik.errors.role}</div>
+            ) : null}
+          </div>
+        )}
+        {shouldShowBranchSelector && (
           <div className="space-y-2">
             <Label htmlFor="branchId">Branch</Label>
             <Select
@@ -197,9 +250,6 @@ const EmployeeForm = ({ initialData, onSubmit, roles }) => {
             {formik.touched.branchId && formik.errors.branchId ? (
               <div className="text-red-500 text-sm">{formik.errors.branchId}</div>
             ) : null}
-            <p className="text-xs text-muted-foreground">
-              Branch is required for branch admin, branch manager, and branch cashier.
-            </p>
           </div>
         )}
       </div>
@@ -207,7 +257,7 @@ const EmployeeForm = ({ initialData, onSubmit, roles }) => {
         <Button
           type="submit"
           className=""
-          disabled={formik.isSubmitting || (isBranchRole && !formik.values.branchId)}
+          disabled={formik.isSubmitting || (shouldShowBranchSelector && !formik.values.branchId)}
         >
           {initialData ? "Save Changes" : "Add Employee"}
         </Button>

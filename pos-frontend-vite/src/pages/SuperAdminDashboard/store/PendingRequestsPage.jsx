@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useSearchParams } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,8 @@ import { formatDateTime } from "@/utils/formateDate";
 
 export default function PendingRequestsPage() {
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+  const querySearch = searchParams.get("q") || "";
   const { stores, loading, error } = useSelector((state) => state.store);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
@@ -39,6 +42,23 @@ export default function PendingRequestsPage() {
   useEffect(() => {
     dispatch(getAllStores("PENDING"));
   }, [dispatch]);
+
+  const filteredRequests = (stores || []).filter((store) => {
+    const searchableText = [
+      store.brand,
+      store.id,
+      store.storeAdmin?.fullName,
+      store.storeAdmin?.email,
+      store.contact?.phone,
+      store.contact?.email,
+      store.storeType,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(querySearch.toLowerCase());
+  });
 
   const handleApprove = (store) => {
     setSelectedRequest(store);
@@ -112,7 +132,7 @@ export default function PendingRequestsPage() {
         </div>
         <Badge variant="secondary" className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          {stores.length} Pending
+          {(querySearch ? filteredRequests : stores).length} Pending
         </Badge>
       </div>
 
@@ -140,7 +160,7 @@ export default function PendingRequestsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {stores.map((store) => (
+                  {(querySearch ? filteredRequests : stores).map((store) => (
                     <TableRow key={store.id}>
                       <TableCell className="font-medium">{store.brand}</TableCell>
                       <TableCell>{store.storeAdmin?.fullName}</TableCell>
@@ -185,7 +205,7 @@ export default function PendingRequestsPage() {
             )}
           </div>
 
-          {stores.length === 0 && !loading && !error && (
+          {(querySearch ? filteredRequests : stores).length === 0 && !loading && !error && (
             <div className="text-center py-8 text-muted-foreground">
               No pending requests at the moment.
             </div>

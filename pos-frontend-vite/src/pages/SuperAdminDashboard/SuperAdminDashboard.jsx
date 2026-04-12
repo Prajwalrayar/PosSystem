@@ -3,16 +3,18 @@ import { useDispatch } from "react-redux";
 import { useEffect } from "react";
 import SuperAdminSidebar from "./components/SuperAdminSidebar";
 import SuperAdminTopbar from "./components/SuperAdminTopbar";
+import { getAllStores } from "@/Redux Toolkit/features/store/storeThunks";
+import { getAllSubscriptionPlans } from "@/Redux Toolkit/features/subscriptionPlan/subscriptionPlanThunks";
 
 export default function SuperAdminDashboard({ children }) {
   const dispatch = useDispatch();
   
   useEffect(() => {
-    // Initialize SuperAdmin data if needed
     if (localStorage.getItem("jwt")) {
-      // Dispatch any initial SuperAdmin data fetching
+      dispatch(getAllStores());
+      dispatch(getAllSubscriptionPlans());
     }
-  }, []);
+  }, [dispatch]);
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-primary/5 via-background to-primary/10">

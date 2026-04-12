@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import api from '@/utils/api';
-import { saveBranchSettings as saveBranchSettingsApi } from '@/utils/api';
+import { getBranchSettings as getBranchSettingsApi, saveBranchSettings as saveBranchSettingsApi } from '@/utils/api';
 
 // 🔹 Create Branch
 export const createBranch = createAsyncThunk('branch/create', async ({ dto, jwt }, { rejectWithValue }) => {
@@ -72,12 +72,32 @@ export const deleteBranch = createAsyncThunk('branch/delete', async ({ id, jwt }
   }
 });
 
+export const fetchBranchSettings = createAsyncThunk(
+  'branch/fetchSettings',
+  async ({ branchId }, { rejectWithValue }) => {
+    try {
+      const res = await getBranchSettingsApi(branchId);
+      const settings = res?.data || res;
+      return settings;
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to fetch branch settings';
+      return rejectWithValue(errorMsg);
+    }
+  }
+);
+
 export const saveBranchSettings = createAsyncThunk(
   'branch/saveSettings',
-  async ({ branchId, payload }, { rejectWithValue }) => {
+  async ({ branchId, payload }, { rejectWithValue, getState }) => {
     try {
+      const role = (getState()?.user?.userProfile?.role || '').trim().toUpperCase();
+      const canManage = role === 'ROLE_BRANCH_ADMIN' || role === 'ROLE_BRANCH_MANAGER';
+      if (!canManage) {
+        return rejectWithValue({ message: 'Access denied: cashier cannot update branch settings' });
+      }
+
       const res = await saveBranchSettingsApi(branchId, payload);
-      return res.data;
+      return res?.data || res;
     } catch (err) {
       return rejectWithValue(err.response?.data || { message: 'Request failed' });
     }

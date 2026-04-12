@@ -7,7 +7,9 @@ export const signup = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const res = await api.post("/auth/signup", userData);
-      localStorage.setItem("jwt", res.data.data.jwt);
+      const jwt = res.data.data.jwt;
+      sessionStorage.setItem("jwt", jwt);
+      localStorage.setItem("jwt", jwt);
       console.log("Signup success:", res.data.data);
       return res.data.data;
     } catch (err) {
@@ -27,9 +29,11 @@ export const login = createAsyncThunk(
       const res = await api.post("/auth/login", credentials);
       const data = res.data.data;
       console.log("Login success:", data);
+      sessionStorage.setItem("jwt", data.jwt);
       localStorage.setItem("jwt", data.jwt);
       // Optional: Save token to localStorage
       if (data.token) {
+        sessionStorage.setItem("token", data.token);
         localStorage.setItem("token", data.token);
       }
 

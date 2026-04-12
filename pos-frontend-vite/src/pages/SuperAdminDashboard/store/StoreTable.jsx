@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useSearchParams } from "react-router";
 import {
   Table,
   TableBody,
@@ -25,9 +26,16 @@ import { formatDateTime } from "../../../utils/formateDate";
 export default function StoreTable({ onViewDetails, onBlockStore, onActivateStore }) {
   const dispatch = useDispatch();
   const { stores, loading, error } = useSelector((state) => state.store);
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [updatingId, setUpdatingId] = useState(null);
+
+  const topbarSearchTerm = searchParams.get("q") || "";
+
+  useEffect(() => {
+    setSearchTerm(topbarSearchTerm);
+  }, [topbarSearchTerm]);
 
   useEffect(() => {
     // Fetch stores, optionally filtered by status

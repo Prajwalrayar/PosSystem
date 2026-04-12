@@ -1,13 +1,19 @@
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-const getBearerToken = () => localStorage.getItem('jwt') || localStorage.getItem('token');
+const getBearerToken = () =>
+  sessionStorage.getItem('jwt') ||
+  sessionStorage.getItem('token') ||
+  localStorage.getItem('jwt') ||
+  localStorage.getItem('token');
 
 const getAuthConfig = () => {
   const token = getBearerToken();
@@ -50,6 +56,10 @@ export const getCommissions = () => {
 
 export const updateCommission = (storeId, { rate }) => {
   return api.patch(`/api/super-admin/commissions/${storeId}`, { rate }, getAuthConfig()).then((response) => response.data);
+};
+
+export const getBranchSettings = (branchId) => {
+  return api.get(`/api/branches/${branchId}/settings`, getAuthConfig()).then((response) => response.data);
 };
 
 export const saveBranchSettings = (branchId, payload) => {

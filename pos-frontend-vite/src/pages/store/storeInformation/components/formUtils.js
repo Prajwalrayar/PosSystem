@@ -18,9 +18,9 @@ export const getInitialValues = (storeData) => {
     description: storeData.description || "",
     storeType: storeData.storeType || "",
     contact: {
-      address: storeData.contact?.address || "",
-      phone: storeData.contact?.phone || "",
-      email: storeData.contact?.email || "",
+      address: storeData.contact?.address || storeData.address || "",
+      phone: storeData.contact?.phone || storeData.storeAdmin?.phone || "",
+      email: storeData.contact?.email || storeData.storeAdmin?.email || "",
     },
   };
 }; 

@@ -6,11 +6,13 @@ import {
   selectSubtotal,
   selectTax,
   selectTotal,
+  selectTaxRate,
 } from "../../../Redux Toolkit/features/cart/cartSlice";
 
 const CartSummary = () => {
   const subtotal = useSelector(selectSubtotal);
   const tax = useSelector(selectTax);
+  const taxRate = useSelector(selectTaxRate);
   const discountAmount = useSelector(selectDiscountAmount);
   const total = useSelector(selectTotal);
 
@@ -22,7 +24,7 @@ const CartSummary = () => {
           <span>₹{subtotal.toFixed(2)}</span>
         </div>
         <div className="flex justify-between">
-          <span>Tax (18% GST):</span>
+          <span>Tax ({taxRate}% GST):</span>
           <span>₹{tax.toFixed(2)}</span>
         </div>
         <div className="flex justify-between">

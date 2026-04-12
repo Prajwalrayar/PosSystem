@@ -5,6 +5,7 @@ const initialState = {
   selectedCustomer: null,
   note: "",
   discount: { type: "percentage", value: 0 },
+  taxRate: 18,
   paymentMethod: "cash",
   heldOrders: [],
   currentOrder: null,
@@ -67,6 +68,11 @@ const cartSlice = createSlice({
       state.discount = action.payload;
     },
 
+    setTaxRate: (state, action) => {
+      const parsed = Number(action.payload);
+      state.taxRate = Number.isFinite(parsed) ? Math.max(0, parsed) : state.taxRate;
+    },
+
     setPaymentMethod: (state, action) => {
       state.paymentMethod = action.payload;
     },
@@ -124,6 +130,7 @@ export const selectCartItemCount = (state) => state.cart.items.length;
 export const selectSelectedCustomer = (state) => state.cart.selectedCustomer;
 export const selectNote = (state) => state.cart.note;
 export const selectDiscount = (state) => state.cart.discount;
+export const selectTaxRate = (state) => state.cart.taxRate;
 export const selectPaymentMethod = (state) => state.cart.paymentMethod;
 export const selectHeldOrders = (state) => state.cart.heldOrders;
 export const selectCurrentOrder = (state) => state.cart.currentOrder;
@@ -138,7 +145,8 @@ export const selectSubtotal = (state) => {
 
 export const selectTax = (state) => {
   const subtotal = selectSubtotal(state);
-  return subtotal * 0.18; // 18% GST
+  const taxRate = Number(state.cart.taxRate || 0);
+  return subtotal * (taxRate / 100);
 };
 
 export const selectDiscountAmount = (state) => {
@@ -167,6 +175,7 @@ export const {
   setSelectedCustomer,
   setNote,
   setDiscount,
+  setTaxRate,
   setPaymentMethod,
   holdOrder,
   resumeOrder,

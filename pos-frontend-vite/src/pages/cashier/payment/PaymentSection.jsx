@@ -20,6 +20,13 @@ const PaymentSection = ({ setShowPaymentDialog }) => {
 
   const {toast} = useToast();
   const dispatch = useDispatch();
+  const hasSelectedCustomer = Boolean(
+    selectedCustomer?.id ||
+    selectedCustomer?.name ||
+    selectedCustomer?.fullName ||
+    selectedCustomer?.phone ||
+    selectedCustomer?.email
+  );
 
   const handlePayment = () => {
     if (cartItems.length === 0) {
@@ -32,7 +39,7 @@ const PaymentSection = ({ setShowPaymentDialog }) => {
     }
 
     // Check if customer is selected
-    if (!selectedCustomer) {
+    if (!hasSelectedCustomer) {
       toast({
         title: "Customer Required",
         description: "Please select a customer before proceeding to payment",

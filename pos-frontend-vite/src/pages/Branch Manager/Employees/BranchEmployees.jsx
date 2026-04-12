@@ -25,6 +25,8 @@ import { clearResetPasswordState } from "../../../Redux Toolkit/features/employe
 import { useToast } from "@/components/ui/use-toast";
 import { getApiErrorMessage } from "@/utils/apiError";
 
+const BRANCH_MANAGER_CREATE_ROLE = "ROLE_BRANCH_CASHIER";
+
 const getStatusColor = (status) => {
   if (status === "Active") {
     return "text-green-500";
@@ -66,8 +68,11 @@ const BranchEmployees = () => {
     if (branch?.id && userProfile.branchId) {
       const data = {
         employee: {
-          ...newEmployeeData,
-
+          fullName: newEmployeeData.fullName,
+          email: newEmployeeData.email,
+          password: newEmployeeData.password,
+          phone: newEmployeeData.phone,
+          role: BRANCH_MANAGER_CREATE_ROLE,
           username: newEmployeeData.email.split("@")[0],
         },
         branchId: branch.id,
@@ -205,7 +210,9 @@ const BranchEmployees = () => {
           isAddDialogOpen={isAddDialogOpen}
           setIsAddDialogOpen={setIsAddDialogOpen}
           handleAddEmployee={handleAddEmployee}
-          roles={branchAdminRole}
+          roles={[BRANCH_MANAGER_CREATE_ROLE]}
+          formContext="branch-manager-create"
+          currentBranchId={branch?.id}
         />
       </div>
       <EmployeeStats employees={employees} />
@@ -224,6 +231,8 @@ const BranchEmployees = () => {
         selectedEmployee={selectedEmployee}
         handleEditEmployee={handleEditEmployee}
         roles={branchAdminRole}
+        formContext="branch-manager-edit"
+        currentBranchId={branch?.id}
       />
 
       <ResetPasswordDialog
