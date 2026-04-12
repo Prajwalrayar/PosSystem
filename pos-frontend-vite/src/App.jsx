@@ -22,7 +22,17 @@ const App = () => {
   const [storeInitialized, setStoreInitialized] = useState(false);
 
   useEffect(() => {
-    const jwt = localStorage.getItem("jwt");
+    const sessionJwt = sessionStorage.getItem("jwt");
+
+    // Keep legacy localStorage token in sync only for the active browser session.
+    if (!sessionJwt) {
+      localStorage.removeItem("jwt");
+      localStorage.removeItem("token");
+    } else if (localStorage.getItem("jwt") !== sessionJwt) {
+      localStorage.setItem("jwt", sessionJwt);
+    }
+
+    const jwt = sessionJwt;
 
     if (!jwt) {
       setAuthInitialized(true);

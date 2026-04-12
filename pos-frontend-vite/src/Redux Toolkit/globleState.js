@@ -25,6 +25,7 @@ import commissionsReducer from "./features/commissions/commissionsSlice.js";
 import exportsReducer from "./features/exports/exportsSlice.js";
 import printReducer from "./features/print/printSlice.js";
 import returnsReducer from "./features/returns/returnsSlice.js";
+import superAdminSettingsReducer from "./features/superAdminSettings/superAdminSettingsSlice.js";
 
 const globleState = configureStore({
   reducer: {
@@ -55,6 +56,7 @@ const globleState = configureStore({
     exports: exportsReducer,
     print: printReducer,
     returns: returnsReducer,
+    superAdminSettings: superAdminSettingsReducer,
   },
 });
 

@@ -35,11 +35,16 @@ const CustomerDialog = ({
   );
 
     const handleCustomerSelect = (customer) => {
-      dispatch(setSelectedCustomer(customer));
+      dispatch(
+        setSelectedCustomer({
+          ...customer,
+          name: customer?.name || customer?.fullName || "",
+        })
+      );
       setShowCustomerDialog(false);
       toast({
         title: "Customer Selected",
-        description: `${customer.name} selected for this order`,
+        description: `${customer?.fullName || customer?.name || "Customer"} selected for this order`,
       });
     };
 

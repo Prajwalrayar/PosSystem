@@ -2,6 +2,26 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "@/utils/api";
 import { saveStoreSettings as saveStoreSettingsApi, getStoreSettings as getStoreSettingsApi } from "@/utils/api";
 
+const buildStoreDtoPayload = (storeData = {}) => {
+  const payload = {
+    brand: storeData.brand,
+    storeType: storeData.storeType,
+    description: storeData.description ?? null,
+    commissionRate: storeData.commissionRate ?? 0,
+  };
+
+  const contact = storeData.contact;
+  if (contact && (contact.address || contact.phone || contact.email)) {
+    payload.contact = {
+      address: contact.address ?? "",
+      phone: contact.phone ?? "",
+      email: contact.email ?? "",
+    };
+  }
+
+  return payload;
+};
+
 // Helper function to get JWT token
 const getAuthToken = () => {
   const token = localStorage.getItem('jwt');
@@ -25,10 +45,11 @@ export const createStore = createAsyncThunk(
   "store/create",
   async (storeData, { rejectWithValue }) => {
     try {
-      console.log('🔄 Creating store...', { storeData });
+      const payload = buildStoreDtoPayload(storeData);
+      console.log('🔄 Creating store...', { storeData: payload });
       
       const headers = getAuthHeaders();
-      const res = await api.post("/api/stores", storeData, { headers });
+      const res = await api.post("/api/stores", payload, { headers });
       
       console.log('✅ Store created successfully:', {
         storeId: res.data.id,
@@ -123,10 +144,11 @@ export const updateStore = createAsyncThunk(
   "store/update",
   async ({ id, storeData }, { rejectWithValue }) => {
     try {
-      console.log('🔄 Updating store...', { storeId: id, storeData });
+      const payload = buildStoreDtoPayload(storeData);
+      console.log('🔄 Updating store...', { storeId: id, storeData: payload });
       
       const headers = getAuthHeaders();
-      const res = await api.put(`/api/stores/${id}`, storeData, { headers });
+      const res = await api.put(`/api/stores/${id}`, payload, { headers });
       
       console.log('✅ Store updated successfully:', {
         storeId: res.data.id,

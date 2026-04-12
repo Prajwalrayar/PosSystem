@@ -5,6 +5,7 @@ import {
   getAllBranchesByStore,
   updateBranch,
   deleteBranch,
+  fetchBranchSettings,
   saveBranchSettings,
   // addEmployeeToBranch,
   // getEmployeesByBranch
@@ -18,6 +19,7 @@ const initialState = {
   error: null,
   branchSettings: {
     data: null,
+    loading: false,
     saving: false,
     error: null,
     successMessage: null,
@@ -82,6 +84,19 @@ const branchSlice = createSlice({
 
       .addCase(deleteBranch.fulfilled, (state, action) => {
         state.branches = state.branches.filter((b) => b.id !== action.payload);
+      })
+
+      .addCase(fetchBranchSettings.pending, (state) => {
+        state.branchSettings.loading = true;
+        state.branchSettings.error = null;
+      })
+      .addCase(fetchBranchSettings.fulfilled, (state, action) => {
+        state.branchSettings.loading = false;
+        state.branchSettings.data = action.payload;
+      })
+      .addCase(fetchBranchSettings.rejected, (state, action) => {
+        state.branchSettings.loading = false;
+        state.branchSettings.error = action.payload;
       })
 
       .addCase(saveBranchSettings.pending, (state) => {

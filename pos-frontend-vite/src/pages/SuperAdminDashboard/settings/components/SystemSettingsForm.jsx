@@ -2,22 +2,28 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 
-const SystemSettingItem = ({ id, title, description, checked, onToggle }) => (
+const SystemSettingItem = ({ id, title, description, checked, onChange, disabled }) => (
   <>
     <div className="flex items-center justify-between">
       <div>
         <h4 className="font-medium">{title}</h4>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <Switch id={id} checked={checked} onCheckedChange={onToggle} />
+      <Switch
+        id={id}
+        checked={Boolean(checked)}
+        onCheckedChange={(value) => onChange(id, value)}
+        disabled={disabled}
+      />
     </div>
     <Separator />
   </>
 );
 
-const SystemSettingsForm = ({ systemSettings, onToggle }) => {
+const SystemSettingsForm = ({ systemSettings, onChange, onSave, isSaving, isLoading }) => {
   const systemSettingItems = [
     {
       id: "autoApproveStores",
@@ -56,11 +62,17 @@ const SystemSettingsForm = ({ systemSettings, onToggle }) => {
               title={item.title}
               description={item.description}
               checked={systemSettings[item.id]}
-              onToggle={() => onToggle(item.id)}
+              onChange={onChange}
+              disabled={isLoading || isSaving}
             />
             {index === systemSettingItems.length - 2 && <Separator />}
           </React.Fragment>
         ))}
+        <div className="flex justify-end">
+          <Button onClick={onSave} disabled={isLoading || isSaving}>
+            {isSaving ? "Saving..." : "Save System Settings"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

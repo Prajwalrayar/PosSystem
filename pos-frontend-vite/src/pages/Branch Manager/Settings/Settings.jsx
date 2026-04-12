@@ -39,6 +39,10 @@ const Settings = () => {
   const { branchSettings } = useSelector((state) => state.branch);
   const { toast } = useToast();
   const [fieldErrors, setFieldErrors] = useState({});
+  const normalizedUserRole = (userProfile?.role || "").trim().toUpperCase();
+  const canManageBranchSettings =
+    normalizedUserRole === "ROLE_BRANCH_ADMIN" ||
+    normalizedUserRole === "ROLE_BRANCH_MANAGER";
   // const { branch} = useSelector((state) => state.branch);
 
   // const [branchInfo, setBranchInfo] = useState({
@@ -52,7 +56,7 @@ const Settings = () => {
   // });
 
   useEffect(() => {
-    if (userProfile?.branchId && localStorage.getItem("jwt")) {
+    if (canManageBranchSettings && userProfile?.branchId && localStorage.getItem("jwt")) {
       dispatch(
         getBranchById({
           id: userProfile.branchId,
@@ -60,7 +64,7 @@ const Settings = () => {
         })
       );
     }
-  }, [dispatch, userProfile]);
+  }, [dispatch, userProfile, canManageBranchSettings]);
 
   const [printerSettings, setPrinterSettings] = useState({
     printerName: "Epson TM-T88VI",
@@ -126,6 +130,24 @@ const Settings = () => {
     });
   };
 
+  useEffect(() => {
+    const savedSettings = branchSettings?.data;
+    if (!savedSettings) return;
+
+    if (savedSettings.printer) {
+      setPrinterSettings((prev) => ({ ...prev, ...savedSettings.printer }));
+    }
+    if (savedSettings.tax) {
+      setTaxSettings((prev) => ({ ...prev, ...savedSettings.tax }));
+    }
+    if (savedSettings.payment) {
+      setPaymentSettings((prev) => ({ ...prev, ...savedSettings.payment }));
+    }
+    if (savedSettings.discount) {
+      setDiscountSettings((prev) => ({ ...prev, ...savedSettings.discount }));
+    }
+  }, [branchSettings?.data]);
+
   const getPayloadByType = (settingType) => {
     switch (settingType) {
       case "printer":
@@ -166,6 +188,15 @@ const Settings = () => {
   };
 
   const handleSaveSettings = async (settingType) => {
+    if (!canManageBranchSettings) {
+      toast({
+        title: "Access Denied",
+        description: "You do not have permission to edit branch settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const branchId = userProfile?.branchId;
     if (!branchId) {
       toast({
@@ -192,7 +223,8 @@ const Settings = () => {
     }
 
     try {
-      const data = await dispatch(saveBranchSettings({ branchId, payload })).unwrap();
+      const response = await dispatch(saveBranchSettings({ branchId, payload })).unwrap();
+      const data = response?.data || response;
 
       if (data?.printer) {
         setPrinterSettings((prev) => ({ ...prev, ...data.printer }));
@@ -229,6 +261,17 @@ const Settings = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Branch Settings</h1>
       </div>
+
+      {!canManageBranchSettings ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>
+              Branch settings can only be managed by branch admin or branch manager.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : (
 
       <Tabs defaultValue="branch-info">
         <TabsList className="grid w-full grid-cols-5">
@@ -741,6 +784,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 };

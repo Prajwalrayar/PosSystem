@@ -21,6 +21,8 @@ export const AddEmployeeDialog = ({
   setIsAddDialogOpen,
   handleAddEmployee,
   roles,
+  formContext,
+  currentBranchId,
 }) => (
   <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
     <DialogTrigger asChild>
@@ -36,6 +38,8 @@ export const AddEmployeeDialog = ({
         initialData={null}
         onSubmit={handleAddEmployee}
         roles={roles}
+        formContext={formContext}
+        currentBranchId={currentBranchId}
       />
     </DialogContent>
   </Dialog>
@@ -47,6 +51,8 @@ export const EditEmployeeDialog = ({
   selectedEmployee,
   handleEditEmployee,
   roles,
+  formContext,
+  currentBranchId,
 }) =>
   selectedEmployee && (
     <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -65,6 +71,8 @@ export const EditEmployeeDialog = ({
           }
           onSubmit={handleEditEmployee}
           roles={roles}
+          formContext={formContext}
+          currentBranchId={currentBranchId}
         />
       </DialogContent>
     </Dialog>

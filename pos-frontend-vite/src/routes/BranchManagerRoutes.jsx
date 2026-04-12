@@ -1,5 +1,6 @@
 import React from "react";
-import { Routes, Route } from "react-router";
+import { Routes, Route, Navigate } from "react-router";
+import { useSelector } from "react-redux";
 
 // Import Branch Manager Dashboard Layout
 import BranchManagerDashboard from "../pages/Branch Manager/Dashboard/BranchManagerDashboard";
@@ -19,6 +20,14 @@ import { BranchEmployees } from "../pages/Branch Manager/Employees";
 import Refunds from "../pages/Branch Manager/Refunds/Refunds";
 
 const BranchManagerRoutes = () => {
+  const { userProfile } = useSelector((state) => state.user);
+  const role = (userProfile?.role || "").trim().toUpperCase();
+  const hasBranchManagerAccess = role === "ROLE_BRANCH_MANAGER" || role === "ROLE_BRANCH_ADMIN";
+
+  if (!hasBranchManagerAccess) {
+    return <Navigate to="/cashier" replace />;
+  }
+
   return (
     <Routes>
       <Route path="/" element={<BranchManagerDashboard />}>

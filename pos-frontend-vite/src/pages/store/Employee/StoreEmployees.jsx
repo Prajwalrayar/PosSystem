@@ -19,11 +19,7 @@ import {
 } from "@/Redux Toolkit/features/employee/employeeThunks";
 import { storeAdminRole } from "../../../utils/userRole";
 
-const branchRoles = [
-  "ROLE_BRANCH_ADMIN",
-  "ROLE_BRANCH_MANAGER",
-  "ROLE_BRANCH_CASHIER",
-];
+const STORE_CREATE_ALLOWED_ROLES = ["ROLE_BRANCH_MANAGER", "ROLE_BRANCH_CASHIER"];
 
 const buildEmployeePayload = (data, storeId) => {
   const payload = {
@@ -35,7 +31,7 @@ const buildEmployeePayload = (data, storeId) => {
     storeId,
   };
 
-  if (branchRoles.includes(data.role)) {
+  if (data.branchId) {
     payload.branchId = Number(data.branchId);
   }
 
@@ -64,7 +60,10 @@ export default function StoreEmployees() {
 
   const handleAddEmployee = (newEmployeeData) => {
     if (store?.id && localStorage.getItem("jwt")) {
-      const employeePayload = buildEmployeePayload(newEmployeeData, store?.id);
+      const selectedRole = STORE_CREATE_ALLOWED_ROLES.includes(newEmployeeData.role)
+        ? newEmployeeData.role
+        : STORE_CREATE_ALLOWED_ROLES[0];
+      const employeePayload = buildEmployeePayload({ ...newEmployeeData, role: selectedRole }, store?.id);
 
       dispatch(
         createStoreEmployee({
@@ -124,15 +123,16 @@ export default function StoreEmployees() {
             </DialogHeader>
             <EmployeeForm
               onSubmit={handleAddEmployee}
+              formContext="store-create"
               initialData={{
                 fullName: "",
                 email: "",
                 password: "",
                 phone: "",
-                role: "",
+                role: STORE_CREATE_ALLOWED_ROLES[0],
                 branchId: "",
               }}
-              roles={storeAdminRole}
+              roles={STORE_CREATE_ALLOWED_ROLES}
             />
           </DialogContent>
         </Dialog>

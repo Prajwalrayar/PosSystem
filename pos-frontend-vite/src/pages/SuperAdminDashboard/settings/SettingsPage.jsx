@@ -17,6 +17,9 @@ export default function SettingsPage() {
   const {
     profileData,
     loading,
+    settingsLoading,
+    savingNotification,
+    savingSystem,
     profileUpdateStatus,
     passwordChangeStatus,
     passwordData,
@@ -25,8 +28,10 @@ export default function SettingsPage() {
     systemSettings,
     handleProfileUpdate,
     handlePasswordChange,
-    handleNotificationToggle,
-    handleSystemSettingToggle,
+    handleNotificationChange,
+    handleSystemSettingChange,
+    handleNotificationSave,
+    handleSystemSettingsSave,
     handleProfileFieldChange,
     handlePasswordFieldChange,
     handleShowPasswordToggle,
@@ -84,14 +89,20 @@ export default function SettingsPage() {
         <TabsContent value="notifications">
           <NotificationSettingsForm
             notifications={notifications}
-            onToggle={handleNotificationToggle}
+            onChange={handleNotificationChange}
+            onSave={handleNotificationSave}
+            isSaving={savingNotification}
+            isLoading={settingsLoading}
           />
         </TabsContent>
 
         <TabsContent value="system">
           <SystemSettingsForm
             systemSettings={systemSettings}
-            onToggle={handleSystemSettingToggle}
+            onChange={handleSystemSettingChange}
+            onSave={handleSystemSettingsSave}
+            isSaving={savingSystem}
+            isLoading={settingsLoading}
           />
         </TabsContent>
       </Tabs>

@@ -15,7 +15,9 @@ const BranchForm = ({ initialValues, onSubmit, onCancel, isEditing }) => {
   const validationSchema = Yup.object({
     name: Yup.string().required("Branch Name is required"),
     address: Yup.string().required("Address is required"),
-    manager: Yup.string().required("Manager Name is required"),
+    manager: isEditing
+      ? Yup.string().required("Manager Name is required")
+      : Yup.string().nullable(),
     phone: Yup.string().required("Phone Number is required"),
   });
 
@@ -34,6 +36,7 @@ const BranchForm = ({ initialValues, onSubmit, onCancel, isEditing }) => {
 
       const branchData = {
         ...values,
+        manager: values.manager?.trim() ? values.manager.trim() : null,
         storeId: store.id,
       };
 

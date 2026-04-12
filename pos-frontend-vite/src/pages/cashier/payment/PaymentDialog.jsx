@@ -7,6 +7,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useSelector } from "react-redux";
 import {
   selectCartItems,
@@ -21,6 +23,7 @@ import { useToast } from "../../../components/ui/use-toast";
 import { useDispatch } from "react-redux";
 import { createOrder } from "../../../Redux Toolkit/features/order/orderThunks";
 import { paymentMethods } from "./data";
+import { getAllowedPaymentMethods, getBranchCheckoutPolicy } from "./branchPolicy";
 
 const PaymentDialog = ({
   showPaymentDialog,
@@ -30,19 +33,58 @@ const PaymentDialog = ({
   const paymentMethod = useSelector(selectPaymentMethod);
   const {toast} = useToast();
   const cart = useSelector(selectCartItems);
-  const branch = useSelector((state) => state.branch);
+  const branchState = useSelector((state) => state.branch);
+  const branch = branchState?.branch;
   const { userProfile } = useSelector((state) => state.user);
   const dispatch = useDispatch();
 
   const selectedCustomer = useSelector(selectSelectedCustomer);
+  const hasSelectedCustomer = Boolean(
+    selectedCustomer?.id ||
+    selectedCustomer?.name ||
+    selectedCustomer?.fullName ||
+    selectedCustomer?.phone ||
+    selectedCustomer?.email
+  );
 
   const total = useSelector(selectTotal);
 
   const note = useSelector(selectNote);
 
+  const checkoutPolicy = getBranchCheckoutPolicy(branchState);
+  const isLoadingSettings = branchState?.branchSettings?.loading;
+  const allowedPaymentMethods = checkoutPolicy ? getAllowedPaymentMethods(checkoutPolicy) : [];
+  const enabledPaymentMethods = paymentMethods.filter((method) =>
+    allowedPaymentMethods.includes(method.key)
+  );
+
+  React.useEffect(() => {
+    if (checkoutPolicy && !allowedPaymentMethods.includes(paymentMethod)) {
+      dispatch(setPaymentMethod(allowedPaymentMethods[0] || "cash"));
+    }
+  }, [allowedPaymentMethods, dispatch, paymentMethod, checkoutPolicy]);
+
   
 
   const processPayment = async () => {
+    if (isLoadingSettings) {
+      toast({
+        title: "Loading Settings",
+        description: "Please wait for branch settings to load.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!checkoutPolicy) {
+      toast({
+        title: "Settings Not Available",
+        description: "Branch settings could not be loaded. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (cart.length === 0) {
       toast({
         title: "Empty Cart",
@@ -52,10 +94,37 @@ const PaymentDialog = ({
       return;
     }
 
-    if (!selectedCustomer) {
+    if (!hasSelectedCustomer) {
       toast({
         title: "Customer Required",
         description: "Please select a customer before processing payment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!allowedPaymentMethods.includes(paymentMethod)) {
+      toast({
+        title: "Payment Method Not Allowed",
+        description: "The selected payment method is disabled for this branch.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!branch?.id) {
+      toast({
+        title: "Branch Not Loaded",
+        description: "Unable to process payment without branch details.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (enabledPaymentMethods.length === 0) {
+      toast({
+        title: "No Payment Methods Enabled",
+        description: "Please enable at least one payment method in branch settings.",
         variant: "destructive",
       });
       return;
@@ -118,25 +187,49 @@ const PaymentDialog = ({
             <p className="text-sm text-gray-600">Amount to be paid</p>
           </div>
 
-          <div className="space-y-2">
-            {paymentMethods.map((method) => (
-              <Button
-                key={method.key}
-                variant={paymentMethod === method.key ? "default" : "outline"}
-                className="w-full justify-start"
-                onClick={() => handlePaymentMethod(method.key)}
-              >
-                {method.label}
-              </Button>
-            ))}
-          </div>
+          {isLoadingSettings ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mr-2" />
+              <span className="text-sm text-muted-foreground">Loading payment methods...</span>
+            </div>
+          ) : !checkoutPolicy ? (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Branch settings not available. Cannot process payment.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-2">
+              {enabledPaymentMethods.map((method) => (
+                <Button
+                  key={method.key}
+                  variant={paymentMethod === method.key ? "default" : "outline"}
+                  className="w-full justify-start"
+                  onClick={() => handlePaymentMethod(method.key)}
+                >
+                  {method.label}
+                </Button>
+              ))}
+              {enabledPaymentMethods.length === 0 && (
+                <p className="text-sm text-red-600">
+                  No payment methods are enabled for this branch.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
             Cancel
           </Button>
-          <Button onClick={processPayment}>Complete Payment</Button>
+          <Button 
+            onClick={processPayment} 
+            disabled={isLoadingSettings || !checkoutPolicy || enabledPaymentMethods.length === 0}
+          >
+            Complete Payment
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

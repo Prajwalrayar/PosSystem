@@ -178,6 +178,7 @@ const AddPlanDialog = ({ open, onOpenChange, onSuccess }) => {
     };
     // Handler for removing an extra feature
     const handleRemoveExtraFeature = idx => {
+      if (!Array.isArray(values.extraFeatures) || values.extraFeatures.length === 0) return;
       const arr = values.extraFeatures.filter((_, i) => i !== idx);
       setFieldValue('extraFeatures', arr);
     };

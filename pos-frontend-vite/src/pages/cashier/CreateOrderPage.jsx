@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useToast } from "@/components/ui/use-toast";
 
 // Import components
@@ -13,12 +13,18 @@ import ReceiptDialog from "./components/ReceiptDialog";
 import HeldOrdersDialog from "./components/HeldOrdersDialog";
 import CustomerDialog from "./customer/CustomerDialog";
 import InvoiceDialog from "./order/OrderDetails/InvoiceDialog";
+import { setTaxRate } from "../../Redux Toolkit/features/cart/cartSlice";
+import { getBranchCheckoutPolicy } from "./payment/branchPolicy";
+import { fetchBranchSettings } from "../../Redux Toolkit/features/branch/branchThunks";
 
 const CreateOrderPage = () => {
   const { toast } = useToast();
   const searchInputRef = useRef(null);
+  const dispatch = useDispatch();
 
   const { error: orderError } = useSelector((state) => state.order);
+  const branchState = useSelector((state) => state.branch);
+  const { userProfile } = useSelector((state) => state.user);
 
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -41,6 +47,24 @@ const CreateOrderPage = () => {
       searchInputRef.current.focus();
     }
   }, []);
+
+  // Fetch branch settings on mount (needs branchId from userProfile)
+  useEffect(() => {
+    const branchId = userProfile?.branchId;
+    if (branchId) {
+      dispatch(fetchBranchSettings({ branchId }));
+    }
+  }, [dispatch, userProfile?.branchId]);
+
+  // Apply tax rate from branch settings whenever branchState changes
+  useEffect(() => {
+    const policy = getBranchCheckoutPolicy(branchState);
+    
+    if (policy?.tax) {
+      const gstRate = policy.tax.gstEnabled ? Number(policy.tax.gstPercentage || 0) : 0;
+      dispatch(setTaxRate(gstRate));
+    }
+  }, [branchState, dispatch]);
 
   return (
     <div className="h-full flex flex-col bg-background">
