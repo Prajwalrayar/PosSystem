@@ -74,6 +74,29 @@ export const getStoreSettings = (storeId) => {
   return api.get(`/api/stores/${storeId}/settings`, getAuthConfig()).then((response) => response.data);
 };
 
+export const completeOrderPayment = (orderId, payload) => {
+  return api
+    .post(`/api/orders/${orderId}/complete-payment`, payload, getAuthConfig())
+    .then((response) => response.data);
+};
+
+export const sendInvoiceEmail = (invoiceId, payload = {}) => {
+  return api
+    .post(`/api/invoices/${invoiceId}/send-email`, payload, getAuthConfig())
+    .then((response) => response.data);
+};
+
+export const getInvoiceStatus = (invoiceId) => {
+  return api.get(`/api/invoices/${invoiceId}/status`, getAuthConfig()).then((response) => response.data);
+};
+
+export const getInvoicePdf = (invoiceId) => {
+  return api.get(`/api/invoices/${invoiceId}/pdf`, {
+    ...getAuthConfig(),
+    responseType: 'blob',
+  });
+};
+
 export const createExport = (payload) => {
   return api.post('/api/exports', payload, getAuthConfig()).then((response) => response.data);
 };

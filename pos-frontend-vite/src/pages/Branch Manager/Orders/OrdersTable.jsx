@@ -9,9 +9,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, FileText, ArrowUpDown } from "lucide-react";
+import { Search, Mail, ArrowUpDown } from "lucide-react";
 
-const OrdersTable = ({ orders, loading, onViewDetails, onPrintInvoice, printLoading, getStatusColor, getPaymentIcon }) => {
+const OrdersTable = ({ orders, loading, onViewDetails, onSendInvoiceEmail, emailSending, getStatusColor, getPaymentIcon }) => {
   return (
     <Table>
       <TableHeader>
@@ -79,11 +79,11 @@ const OrdersTable = ({ orders, loading, onViewDetails, onPrintInvoice, printLoad
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onPrintInvoice(order.id)}
-                    disabled={printLoading}
-                    title="Print Invoice"
+                    onClick={() => onSendInvoiceEmail(order.id)}
+                    disabled={emailSending}
+                    title="Resend Invoice Email"
                   >
-                    <FileText className="h-4 w-4" />
+                    <Mail className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>
