@@ -10,17 +10,16 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
-import { EyeIcon } from "lucide-react";
-import { PrinterIcon } from "lucide-react";
+import { EyeIcon, Mail } from "lucide-react";
 import { RotateCcwIcon } from "lucide-react";
 
 const OrderTable = ({
   orders,
   handleViewOrder,
-  handlePrintInvoice,
+  handleSendInvoiceEmail,
   handleInitiateReturn,
   returnLoading,
-  printLoading,
+  emailSending,
 }) => {
   return (
     <Table>
@@ -65,10 +64,11 @@ const OrderTable = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => handlePrintInvoice(order)}
-                  disabled={printLoading}
+                  onClick={() => handleSendInvoiceEmail(order)}
+                  disabled={emailSending}
+                  title="Resend Invoice Email"
                 >
-                  <PrinterIcon className="h-4 w-4" />
+                  <Mail className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"

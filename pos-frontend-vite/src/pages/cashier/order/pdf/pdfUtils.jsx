@@ -12,6 +12,27 @@ export const handleDownloadOrderPDF = async (order, toast) => {
       });
     }
 
+    if (order?.invoicePdfUrl) {
+      const response = await fetch(order.invoicePdfUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `invoice-${order.invoiceNumber || order.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      if (toast) {
+        toast({
+          title: "PDF Downloaded",
+          description: `Invoice ${order.invoiceNumber || order.id} downloaded from backend`,
+        });
+      }
+      return;
+    }
+
     const pdfDoc = pdf(<OrderPDF order={order} />);
     const blob = await pdfDoc.toBlob();
 

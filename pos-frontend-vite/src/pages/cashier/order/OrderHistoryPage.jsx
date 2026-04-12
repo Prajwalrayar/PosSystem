@@ -16,24 +16,24 @@ import {
 
 import {
   SearchIcon,
-  PrinterIcon,
   EyeIcon,
   RotateCcwIcon,
   CalendarIcon,
   Loader2,
   RefreshCw,
   Download,
+  Mail,
 } from "lucide-react";
 import { getOrdersByCashier } from "@/Redux Toolkit/features/order/orderThunks";
 import { initiateReturn } from "@/Redux Toolkit/features/returns/returnsThunks";
-import { createPrintJob } from "@/Redux Toolkit/features/print/printThunks";
 import OrderDetails from "./OrderDetails/OrderDetails";
 
 import OrderTable from "./OrderTable";
 import { handleDownloadOrderPDF } from "./pdf/pdfUtils";
 import { useNavigate } from "react-router";
 import { getApiErrorMessage } from "@/utils/apiError";
-import { getActivePrinterId } from "@/utils/printer";
+import { sendInvoiceEmail } from "@/Redux Toolkit/features/invoice/invoiceThunks";
+import { getInvoiceIdFromOrder } from "@/utils/invoice";
 
 const OrderHistoryPage = () => {
   const dispatch = useDispatch();
@@ -42,8 +42,7 @@ const OrderHistoryPage = () => {
   const { userProfile } = useSelector((state) => state.user);
   const { orders, loading, error } = useSelector((state) => state.order);
   const { creating: returnCreating } = useSelector((state) => state.returns);
-  const { creating: printCreating } = useSelector((state) => state.print);
-  const branch = useSelector((state) => state.branch.branch);
+  const { emailSending } = useSelector((state) => state.invoice);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("today");
@@ -84,23 +83,37 @@ const OrderHistoryPage = () => {
     setShowOrderDetailsDialog(true);
   };
 
-  const handlePrintInvoice = async (order) => {
+  const handleSendInvoiceEmail = async (order) => {
+    const invoiceId = getInvoiceIdFromOrder(order);
+
+    if (!invoiceId) {
+      toast({
+        title: "Invoice Not Ready",
+        description: "This order does not have an invoice id yet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const data = await dispatch(
-        createPrintJob({
-          type: "ORDER_INVOICE",
-          referenceId: order.id,
-          printerId: getActivePrinterId(branch),
+        sendInvoiceEmail({
+          invoiceId,
+          payload: {
+            orderId: order.id,
+            customerEmail: order?.customer?.email,
+            resend: true,
+          },
         })
       ).unwrap();
 
       toast({
-        title: "Print Job Queued",
-        description: data?.message || `Invoice print job queued for order ${order.id}`,
+        title: "Invoice Email Queued",
+        description: data?.message || `Invoice email queued for order ${order.id}`,
       });
     } catch (errorPayload) {
       toast({
-        title: "Print Failed",
+        title: "Email Failed",
         description: getApiErrorMessage(errorPayload),
         variant: "destructive",
       });
@@ -278,10 +291,10 @@ const OrderHistoryPage = () => {
           <OrderTable
             orders={orders}
             handleInitiateReturn={handleInitiateReturn}
-            handlePrintInvoice={handlePrintInvoice}
+            handleSendInvoiceEmail={handleSendInvoiceEmail}
             handleViewOrder={handleViewOrder}
             returnLoading={returnCreating}
-            printLoading={printCreating}
+            emailSending={emailSending}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
@@ -311,11 +324,11 @@ const OrderHistoryPage = () => {
               </Button>
               <Button
                 variant=""
-                onClick={() => handlePrintInvoice(selectedOrder)}
-                disabled={printCreating}
+                onClick={() => handleSendInvoiceEmail(selectedOrder)}
+                disabled={emailSending}
               >
-                <PrinterIcon className="h-4 w-4 mr-2" />
-                {printCreating ? "Printing..." : "Print Invoice"}
+                <Mail className="h-4 w-4 mr-2" />
+                {emailSending ? "Sending..." : "Resend Invoice Email"}
               </Button>
              
             </DialogFooter>
