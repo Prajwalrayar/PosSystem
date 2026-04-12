@@ -15,9 +15,9 @@ import { getStatusColor } from "../../../utils/getStatusColor";
 import OrdersFilters from "./OrdersFilters";
 import OrdersTable from "./OrdersTable";
 import OrderDetailsDialog from "./OrderDetailsDialog";
-import { createPrintJob } from "@/Redux Toolkit/features/print/printThunks";
 import { getApiErrorMessage } from "@/utils/apiError";
-import { getActivePrinterId } from "@/utils/printer";
+import { sendInvoiceEmail } from "@/Redux Toolkit/features/invoice/invoiceThunks";
+import { getInvoiceIdFromOrder } from "@/utils/invoice";
 import { useToast } from "@/components/ui/use-toast";
 
 const Orders = () => {
@@ -26,8 +26,7 @@ const Orders = () => {
   const branchId = useSelector((state) => state.branch.branch?.id);
   const { orders, loading } = useSelector((state) => state.order);
   const { selectedOrder } = useSelector((state) => state.order);
-  const { creating: printCreating } = useSelector((state) => state.print);
-  const branch = useSelector((state) => state.branch.branch);
+  const { emailSending } = useSelector((state) => state.invoice);
 
 
   const [showDetails, setShowDetails] = useState(false);
@@ -55,23 +54,38 @@ const Orders = () => {
     setShowDetails(true);
   };
 
-  const handlePrintInvoice = async (orderId) => {
+  const handleSendInvoiceEmail = async (orderId) => {
+    const order = orders.find((item) => item.id === orderId);
+    const invoiceId = getInvoiceIdFromOrder(order || selectedOrder);
+
+    if (!invoiceId) {
+      toast({
+        title: "Invoice Not Ready",
+        description: "This order does not have an invoice id yet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const data = await dispatch(
-        createPrintJob({
-          type: "ORDER_INVOICE",
-          referenceId: orderId,
-          printerId: getActivePrinterId(branch),
+        sendInvoiceEmail({
+          invoiceId,
+          payload: {
+            orderId,
+            customerEmail: order?.customer?.email,
+            resend: true,
+          },
         })
       ).unwrap();
 
       toast({
-        title: "Print Job Queued",
-        description: data?.message || `Invoice print job queued for order ${orderId}`,
+        title: "Invoice Email Queued",
+        description: data?.message || `Invoice email queued for order ${orderId}`,
       });
     } catch (errorPayload) {
       toast({
-        title: "Print Failed",
+        title: "Email Failed",
         description: getApiErrorMessage(errorPayload),
         variant: "destructive",
       });
@@ -111,8 +125,8 @@ const Orders = () => {
         orders={orders}
         loading={loading}
         onViewDetails={handleViewDetails}
-        onPrintInvoice={handlePrintInvoice}
-        printLoading={printCreating}
+        onSendInvoiceEmail={handleSendInvoiceEmail}
+        emailSending={emailSending}
         getStatusColor={getStatusColor}
         getPaymentIcon={getPaymentIcon}
       />

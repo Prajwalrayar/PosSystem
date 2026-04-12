@@ -26,6 +26,7 @@ import exportsReducer from "./features/exports/exportsSlice.js";
 import printReducer from "./features/print/printSlice.js";
 import returnsReducer from "./features/returns/returnsSlice.js";
 import superAdminSettingsReducer from "./features/superAdminSettings/superAdminSettingsSlice.js";
+import invoiceReducer from "./features/invoice/invoiceSlice.js";
 
 const globleState = configureStore({
   reducer: {
@@ -57,6 +58,7 @@ const globleState = configureStore({
     print: printReducer,
     returns: returnsReducer,
     superAdminSettings: superAdminSettingsReducer,
+    invoice: invoiceReducer,
   },
 });
 

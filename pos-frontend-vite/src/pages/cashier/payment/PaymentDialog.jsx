@@ -22,6 +22,7 @@ import {
 import { useToast } from "../../../components/ui/use-toast";
 import { useDispatch } from "react-redux";
 import { createOrder } from "../../../Redux Toolkit/features/order/orderThunks";
+import { completeOrderPayment } from "../../../Redux Toolkit/features/invoice/invoiceThunks";
 import { paymentMethods } from "./data";
 import { getAllowedPaymentMethods, getBranchCheckoutPolicy } from "./branchPolicy";
 
@@ -46,6 +47,7 @@ const PaymentDialog = ({
     selectedCustomer?.phone ||
     selectedCustomer?.email
   );
+  const customerEmail = selectedCustomer?.email?.trim() || null;
 
   const total = useSelector(selectTotal);
 
@@ -151,20 +153,53 @@ const PaymentDialog = ({
 
       // Create order
       const createdOrder = await dispatch(createOrder(orderData)).unwrap();
-      dispatch(setCurrentOrder(createdOrder));
+
+      const invoicePayload = {
+        customerId: selectedCustomer?.id ?? null,
+        customerName: selectedCustomer?.fullName || selectedCustomer?.name || "",
+        customerEmail,
+        customerPhone: selectedCustomer?.phone || null,
+        paymentMethod,
+        cashierId: userProfile?.id ?? null,
+        cashierName: userProfile?.fullName || "",
+        branchId: branch.id,
+        totalAmount: total,
+        note: note || "",
+      };
+
+      const invoiceResponse = await dispatch(
+        completeOrderPayment({
+          orderId: createdOrder.id,
+          payload: invoicePayload,
+        })
+      ).unwrap();
+
+      const finalOrder = invoiceResponse?.order || invoiceResponse?.data?.order || createdOrder;
+      const invoiceRecord = invoiceResponse?.invoice || invoiceResponse?.data?.invoice || invoiceResponse;
+
+      dispatch(
+        setCurrentOrder({
+          ...finalOrder,
+          invoiceId: invoiceRecord?.id || invoiceRecord?.invoiceId || finalOrder?.invoiceId,
+          invoiceNumber: invoiceRecord?.invoiceNumber || finalOrder?.invoiceNumber,
+          invoicePdfUrl: invoiceRecord?.invoicePdfUrl || invoiceRecord?.pdfUrl || finalOrder?.invoicePdfUrl,
+          invoiceDeliveryStatus:
+            invoiceRecord?.deliveryStatus || invoiceRecord?.status || finalOrder?.invoiceDeliveryStatus,
+        })
+      );
 
       setShowPaymentDialog(false);
       setShowReceiptDialog(true);
 
       toast({
         title: "Order Created Successfully",
-        description: `Order #${createdOrder.id} created and payment processed`,
+        description: "Payment successful. You can send the invoice email from Order Details.",
       });
     } catch (error) {
       console.error("Failed to create order:", error);
       toast({
-        title: "Order Creation Failed",
-        description: error || "Failed to create order. Please try again.",
+        title: "Payment Failed",
+        description: error?.message || error?.data?.message || error || "Failed to complete payment. Please try again.",
         variant: "destructive",
       });
     }
