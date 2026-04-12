@@ -116,7 +116,9 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public StoreSettingsResponse getStoreSettings(Long storeId) throws UserException {
         User currentUser = userService.getCurrentUser();
-        if (currentUser.getRole() != UserRole.ROLE_STORE_MANAGER && currentUser.getRole() != UserRole.ROLE_ADMIN) {
+        if (currentUser.getRole() != UserRole.ROLE_STORE_MANAGER
+                && currentUser.getRole() != UserRole.ROLE_STORE_ADMIN
+                && currentUser.getRole() != UserRole.ROLE_ADMIN) {
             throw new AccessDeniedException("You are not allowed to view store settings");
         }
 
@@ -283,7 +285,9 @@ public class StoreServiceImpl implements StoreService {
     @Transactional
     public StoreSettingsResponse updateStoreSettings(Long storeId, StoreSettingsRequest request) throws ResourceNotFoundException {
         User currentUser = userService.getCurrentUser();
-        if (currentUser.getRole() != UserRole.ROLE_STORE_MANAGER && currentUser.getRole() != UserRole.ROLE_ADMIN) {
+        if (currentUser.getRole() != UserRole.ROLE_STORE_MANAGER
+                && currentUser.getRole() != UserRole.ROLE_STORE_ADMIN
+                && currentUser.getRole() != UserRole.ROLE_ADMIN) {
             throw new AccessDeniedException("You are not allowed to update store settings");
         }
 

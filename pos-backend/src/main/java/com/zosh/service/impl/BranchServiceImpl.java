@@ -112,7 +112,9 @@ public class BranchServiceImpl implements BranchService {
     @Override
     public BranchSettingsResponse getBranchSettings(Long branchId) {
         User currentUser = userService.getCurrentUser();
-        if (!(currentUser.getRole() == UserRole.ROLE_BRANCH_ADMIN || currentUser.getRole() == UserRole.ROLE_BRANCH_MANAGER)) {
+        if (!(currentUser.getRole() == UserRole.ROLE_BRANCH_ADMIN
+                || currentUser.getRole() == UserRole.ROLE_BRANCH_MANAGER
+                || currentUser.getRole() == UserRole.ROLE_BRANCH_CASHIER)) {
             throw new AccessDeniedException("You are not allowed to view branch settings");
         }
         if (currentUser.getBranch() == null || !currentUser.getBranch().getId().equals(branchId)) {

@@ -67,21 +67,37 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public UserDTO createStoreEmployee(UserDTO dto, Long storeId) throws Exception {
+        User actor = userService.getCurrentUser();
+        if (actor.getRole() != UserRole.ROLE_STORE_ADMIN && actor.getRole() != UserRole.ROLE_STORE_MANAGER) {
+            throw new AccessDeniedException("Only store admins or store managers can create store-level employees");
+        }
 
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
 
+        if (actor.getRole() != UserRole.ROLE_ADMIN) {
+            Store actorStore = actor.getStore() != null
+                    ? actor.getStore()
+                    : storeRepository.findByStoreAdminId(actor.getId());
+            if (actorStore == null || !actorStore.getId().equals(store.getId())) {
+                throw new AccessDeniedException("You can create employees only for your own store");
+            }
+        }
+
         Branch branch = null;
 
-        if (isBranchScopedRole(dto.getRole())) {
-            if (dto.getBranchId() == null) {
-                throw new IllegalArgumentException("Branch ID is required for branch roles.");
-            }
+        if (dto.getRole() != UserRole.ROLE_BRANCH_MANAGER && dto.getRole() != UserRole.ROLE_BRANCH_CASHIER) {
+            throw new IllegalArgumentException("Store-level employee creation allows only ROLE_BRANCH_MANAGER or ROLE_BRANCH_CASHIER");
+        }
 
-            branch = branchRepository.findById(dto.getBranchId())
-                    .orElseThrow(() -> new EntityNotFoundException("Branch not found with ID: " + dto.getBranchId()));
-        } else if (dto.getBranchId() != null) {
-            throw new IllegalArgumentException("Branch ID can only be used for branch roles.");
+        if (dto.getBranchId() == null) {
+            throw new IllegalArgumentException("Branch ID is required for branch employee creation.");
+        }
+
+        branch = branchRepository.findById(dto.getBranchId())
+                .orElseThrow(() -> new EntityNotFoundException("Branch not found with ID: " + dto.getBranchId()));
+        if (branch.getStore() == null || !branch.getStore().getId().equals(store.getId())) {
+            throw new AccessDeniedException("Selected branch does not belong to this store");
         }
 
         User employee = UserMapper.toEntity(dto);
@@ -113,11 +129,20 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public User createBranchEmployee(User employee, Long branchId) throws Exception {
+        User actor = userService.getCurrentUser();
+        if (actor.getRole() != UserRole.ROLE_BRANCH_ADMIN && actor.getRole() != UserRole.ROLE_BRANCH_MANAGER) {
+            throw new AccessDeniedException("Only branch admins or branch managers can create branch employees");
+        }
+
         Branch branch = branchRepository.findById(branchId)
                 .orElseThrow(() -> new ResourceNotFoundException("Branch not found with ID: " + branchId));
 
-        if (!(employee.getRole().equals(UserRole.ROLE_BRANCH_CASHIER) || employee.getRole().equals(UserRole.ROLE_BRANCH_MANAGER))) {
-            throw new UserException("Invalid role for branch employee. Must be ROLE_BRANCH_ADMIN or ROLE_BRANCH_MANAGER");
+        if (actor.getBranch() == null || !actor.getBranch().getId().equals(branchId)) {
+            throw new AccessDeniedException("You can create employees only for your own branch");
+        }
+
+        if (!employee.getRole().equals(UserRole.ROLE_BRANCH_CASHIER)) {
+            throw new UserException("Invalid role for branch employee. Must be ROLE_BRANCH_CASHIER");
         }
 
         employee.setPassword(passwordEncoder.encode(employee.getPassword()));
@@ -304,11 +329,5 @@ public class EmployeeServiceImpl implements EmployeeService {
                 dailySales,
                 activityLog
         );
-    }
-
-    private boolean isBranchScopedRole(UserRole role) {
-        return role == UserRole.ROLE_BRANCH_ADMIN
-                || role == UserRole.ROLE_BRANCH_MANAGER
-                || role == UserRole.ROLE_BRANCH_CASHIER;
     }
 }
