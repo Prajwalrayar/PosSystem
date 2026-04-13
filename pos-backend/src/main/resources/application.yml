@@ -1,12 +1,15 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: pos-system
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/cp_test}
+    url: ${DB_URL:jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:Suhas@123}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -14,16 +17,16 @@ spring:
     show-sql: true
 
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:prajwalrayar363@gmail.com}
-    password: ${MAIL_PASSWORD:ezmi lpao mvxf dnvg}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
-          auth: ${MAIL_SMTP_AUTH:true}
+          auth: ${MAIL_SMTP_AUTH}
           starttls:
-            enable: ${MAIL_SMTP_STARTTLS:true}
+            enable: ${MAIL_SMTP_STARTTLS}
 
   devtools:
     livereload:

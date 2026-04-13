@@ -6,9 +6,11 @@ services:
     container_name: userdb
     ports:
       - "3301:3306"
+    env_file:
+      - ../../../.env
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: userdb
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       timeout: 10s
@@ -25,12 +27,12 @@ services:
         condition: service_healthy
     ports:
       - "5000:5000"
+    env_file:
+      - ../../../.env
     environment:
-      DB_HOST: posdb         # service name of the mysql container
+      DB_HOST: posdb
       DB_PORT: 3306
       DB_NAME: userdb
-      DB_USERNAME: root
-      DB_PASSWORD: root
     networks:
       - zosh
 
