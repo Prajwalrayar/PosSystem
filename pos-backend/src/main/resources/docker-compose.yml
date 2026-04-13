@@ -11,6 +11,9 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: userdb
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       timeout: 10s
@@ -33,6 +36,12 @@ services:
       DB_HOST: posdb
       DB_PORT: 3306
       DB_NAME: userdb
+    environment:
+      DB_HOST: posdb         # service name of the mysql container
+      DB_PORT: 3306
+      DB_NAME: userdb
+      DB_USERNAME: root
+      DB_PASSWORD: root
     networks:
       - zosh
 
