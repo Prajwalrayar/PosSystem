@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Routes, Route, Navigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -13,30 +13,50 @@ import Onboarding from "./pages/onboarding/Onboarding";
 import { getStoreByAdmin, getStoreByEmployee } from "./Redux Toolkit/features/store/storeThunks";
 import SuperAdminRoutes from "./routes/SuperAdminRoutes";
 import PageNotFound from "./pages/common/PageNotFound";
+import { clearCustomerState } from "./Redux Toolkit/features/customer/customerSlice";
+import { resetCheckoutContext, setSelectedCustomer } from "./Redux Toolkit/features/cart/cartSlice";
+import { getAllCustomers } from "./Redux Toolkit/features/customer/customerThunks";
+import { clearInvoiceState } from "./Redux Toolkit/features/invoice/invoiceSlice";
+import { clearOrderPreviewState } from "./Redux Toolkit/features/order/orderSlice";
 
 const App = () => {
   const dispatch = useDispatch();
   const { userProfile, loading: userLoading } = useSelector((state) => state.user);
   const { store } = useSelector((state) => state.store);
+  const { branch } = useSelector((state) => state.branch);
+  const hasStoredToken = Boolean(
+    sessionStorage.getItem("jwt") || localStorage.getItem("jwt")
+  );
   const [authInitialized, setAuthInitialized] = useState(false);
   const [storeInitialized, setStoreInitialized] = useState(false);
+  const [customerScopeKey, setCustomerScopeKey] = useState(null);
+  const profileFetchAttemptRef = useRef({ token: null, attempted: false });
 
   useEffect(() => {
     const sessionJwt = sessionStorage.getItem("jwt");
+    const localJwt = localStorage.getItem("jwt");
+    const jwt = sessionJwt || localJwt;
 
-    // Keep legacy localStorage token in sync only for the active browser session.
-    if (!sessionJwt) {
+    // If no token exists anywhere, clear both storages.
+    if (!jwt) {
+      sessionStorage.removeItem("jwt");
+      sessionStorage.removeItem("token");
       localStorage.removeItem("jwt");
       localStorage.removeItem("token");
-    } else if (localStorage.getItem("jwt") !== sessionJwt) {
+      setAuthInitialized(true);
+      return;
+    }
+
+    // Keep both storages in sync so refresh doesn't log users out unexpectedly.
+    if (!sessionJwt && localJwt) {
+      sessionStorage.setItem("jwt", localJwt);
+    }
+    if (sessionJwt && localStorage.getItem("jwt") !== sessionJwt) {
       localStorage.setItem("jwt", sessionJwt);
     }
 
-    const jwt = sessionJwt;
-
-    if (!jwt) {
-      setAuthInitialized(true);
-      return;
+    if (profileFetchAttemptRef.current.token !== jwt) {
+      profileFetchAttemptRef.current = { token: jwt, attempted: false };
     }
 
     if (userProfile) {
@@ -47,6 +67,13 @@ const App = () => {
     if (userLoading) {
       return;
     }
+
+    if (profileFetchAttemptRef.current.attempted) {
+      setAuthInitialized(true);
+      return;
+    }
+
+    profileFetchAttemptRef.current.attempted = true;
 
     dispatch(getUserProfile(jwt)).finally(() => {
       setAuthInitialized(true);
@@ -82,11 +109,54 @@ const App = () => {
     dispatch(fetchStore()).finally(() => {
       setStoreInitialized(true);
     });
-  }, [dispatch, userProfile]);
+  }, [dispatch, userProfile, store]);
+
+  useEffect(() => {
+    if (!userProfile) {
+      setCustomerScopeKey(null);
+      return;
+    }
+
+    const role = userProfile.role;
+    const shouldManageCustomers =
+      role === "ROLE_BRANCH_CASHIER" ||
+      role === "ROLE_BRANCH_MANAGER" ||
+      role === "ROLE_BRANCH_ADMIN" ||
+      role === "ROLE_STORE_ADMIN" ||
+      role === "ROLE_STORE_MANAGER";
+
+    if (!shouldManageCustomers) {
+      return;
+    }
+
+    const activeBranchId = branch?.id ?? userProfile?.branchId ?? "none";
+    const activeStoreId = branch?.storeId ?? userProfile?.storeId ?? store?.id ?? "none";
+    const nextScopeKey = `${userProfile?.id || "anon"}:${activeStoreId}:${activeBranchId}`;
+
+    if (nextScopeKey === customerScopeKey) {
+      return;
+    }
+
+    setCustomerScopeKey(nextScopeKey);
+    dispatch(clearCustomerState());
+    dispatch(setSelectedCustomer(null));
+    dispatch(resetCheckoutContext());
+    dispatch(clearInvoiceState());
+    dispatch(clearOrderPreviewState());
+    dispatch(getAllCustomers());
+  }, [dispatch, userProfile, branch?.id, branch?.storeId, store?.id, customerScopeKey]);
 
   const isStoreRole =
     userProfile?.role === "ROLE_STORE_ADMIN" ||
     userProfile?.role === "ROLE_STORE_MANAGER";
+
+  if (authInitialized && hasStoredToken && !userProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Restoring your session...
+      </div>
+    );
+  }
 
   if (!authInitialized || (isStoreRole && !storeInitialized)) {
     return (
@@ -106,6 +176,7 @@ const App = () => {
       content = (
         <Routes>
           <Route path="/" element={<Navigate to="/super-admin" replace />} />
+          <Route path="/auth/*" element={<Navigate to="/super-admin" replace />} />
           <Route path="/super-admin/*" element={<SuperAdminRoutes />} />
           <Route
             path="*"
@@ -117,6 +188,7 @@ const App = () => {
       content = (
         <Routes>
           <Route path="/" element={<Navigate to="/cashier" replace />} />
+          <Route path="/auth/*" element={<Navigate to="/cashier" replace />} />
           <Route path="/cashier/*" element={<CashierRoutes />} />
           <Route
             path="*"
@@ -145,6 +217,7 @@ const App = () => {
         content = (
           <Routes>
             <Route path="/" element={<Navigate to="/store" replace />} />
+            <Route path="/auth/*" element={<Navigate to="/store" replace />} />
             <Route path="/store/*" element={<StoreRoutes />} />
             <Route
               path="*"
@@ -160,6 +233,7 @@ const App = () => {
       content = (
         <Routes>
           <Route path="/" element={<Navigate to="/branch" replace />} />
+          <Route path="/auth/*" element={<Navigate to="/branch" replace />} />
           <Route path="/branch/*" element={<BranchManagerRoutes />} />
           <Route
             path="*"

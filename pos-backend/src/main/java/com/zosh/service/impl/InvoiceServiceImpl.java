@@ -78,6 +78,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         if (request.getPaymentMethod() != null) {
             order.setPaymentType(request.getPaymentMethod());
         }
+
+        applyPaymentBreakdown(order, request);
         orderRepository.save(order);
 
         Invoice existingInvoice = invoiceRepository.findByOrder_Id(orderId).orElse(null);
@@ -148,12 +150,15 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .sorted(Comparator.comparing(item -> item.getProduct() != null ? item.getProduct().getName() : ""))
                 .toList();
 
-        BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal subtotal = order.getSubtotal() != null
+                ? toMoney(order.getSubtotal())
+                : order.getTotalAmount() != null
+                ? toMoney(order.getTotalAmount())
+                : sumOrderItemTotals(sortedItems);
         List<InvoiceLineItem> invoiceLineItems = new ArrayList<>();
 
         for (OrderItem orderItem : sortedItems) {
             BigDecimal lineSubtotal = toMoney(orderItem.getPrice());
-            subtotal = subtotal.add(lineSubtotal);
             invoiceLineItems.add(InvoiceLineItem.builder()
                     .itemName(orderItem.getProduct() != null ? orderItem.getProduct().getName() : "Item")
                     .sku(orderItem.getProduct() != null ? orderItem.getProduct().getSku() : null)
@@ -166,22 +171,12 @@ public class InvoiceServiceImpl implements InvoiceService {
                     .build());
         }
 
-        BigDecimal grandTotal = toMoney(order.getTotalAmount());
-        BigDecimal taxTotal = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal taxTotal = resolveTaxTotal(order, request, subtotal, taxSettings);
+        BigDecimal discountTotal = resolveDiscountTotal(order, request, subtotal, taxTotal);
+        BigDecimal grandTotal = resolveGrandTotal(order, request, subtotal, taxTotal, discountTotal);
 
-        if (taxSettings != null && Boolean.TRUE.equals(taxSettings.getGstEnabled()) && taxSettings.getGstPercentage() != null) {
-            BigDecimal desiredTax = grandTotal.subtract(subtotal);
-            if (desiredTax.compareTo(BigDecimal.ZERO) <= 0) {
-                desiredTax = subtotal.multiply(taxSettings.getGstPercentage())
-                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                grandTotal = subtotal.add(desiredTax);
-            }
-
-            taxTotal = desiredTax.setScale(2, RoundingMode.HALF_UP);
-            distributeTax(invoiceLineItems, subtotal, taxTotal, taxSettings.getGstPercentage());
-        } else {
-            grandTotal = subtotal;
-        }
+        distributeTax(invoiceLineItems, subtotal, taxTotal, resolveTaxRate(order, request, taxSettings));
+        distributeDiscount(invoiceLineItems, subtotal, discountTotal);
 
         Invoice invoice = Invoice.builder()
                 .id(order.getId())
@@ -204,7 +199,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .paymentReference(request.getPaymentReference())
                 .subtotal(subtotal.setScale(2, RoundingMode.HALF_UP))
                 .taxTotal(taxTotal.setScale(2, RoundingMode.HALF_UP))
-                .discountTotal(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP))
+                .discountTotal(discountTotal.setScale(2, RoundingMode.HALF_UP))
                 .grandTotal(grandTotal.setScale(2, RoundingMode.HALF_UP))
                 .deliveryStatus(InvoiceDeliveryStatus.PENDING)
                 .retryCount(0)
@@ -240,16 +235,51 @@ public class InvoiceServiceImpl implements InvoiceService {
         }
     }
 
+    private void distributeDiscount(List<InvoiceLineItem> lineItems, BigDecimal subtotal, BigDecimal discountTotal) {
+        if (lineItems.isEmpty() || subtotal.compareTo(BigDecimal.ZERO) <= 0 || discountTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        BigDecimal allocated = BigDecimal.ZERO;
+        for (int index = 0; index < lineItems.size(); index++) {
+            InvoiceLineItem item = lineItems.get(index);
+            BigDecimal discountAmount;
+            if (index == lineItems.size() - 1) {
+                discountAmount = discountTotal.subtract(allocated);
+            } else {
+                BigDecimal ratio = item.getLineTotal().divide(subtotal, 8, RoundingMode.HALF_UP);
+                discountAmount = discountTotal.multiply(ratio).setScale(2, RoundingMode.HALF_UP);
+                allocated = allocated.add(discountAmount);
+            }
+
+            discountAmount = discountAmount.setScale(2, RoundingMode.HALF_UP);
+            item.setDiscountAmount(discountAmount);
+            item.setLineTotal(item.getLineTotal().subtract(discountAmount).setScale(2, RoundingMode.HALF_UP));
+        }
+    }
+
     private Customer resolveCustomer(Order order, CompletePaymentRequest request) throws ResourceNotFoundException {
+        if (order.getBranch() == null || order.getBranch().getStore() == null) {
+            throw new ResourceNotFoundException("Store not found for order " + order.getId());
+        }
+
+        Store store = order.getBranch().getStore();
         Customer customer = null;
 
         if (request.getCustomerId() != null) {
-            customer = customerRepository.findById(request.getCustomerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id " + request.getCustomerId()));
+            customer = customerRepository.findByStore_IdAndId(store.getId(), request.getCustomerId());
+            if (customer == null) {
+                throw new ResourceNotFoundException("Customer not found with id " + request.getCustomerId());
+            }
         } else if (order.getCustomer() != null) {
+            if (order.getCustomer().getStore() != null
+                    && order.getCustomer().getStore().getId() != null
+                    && !order.getCustomer().getStore().getId().equals(store.getId())) {
+                throw new AccessDeniedException("Customer does not belong to this store");
+            }
             customer = order.getCustomer();
         } else if (request.getCustomerEmail() != null && !request.getCustomerEmail().isBlank()) {
-            customer = customerRepository.findByEmailIgnoreCase(request.getCustomerEmail().trim());
+            customer = customerRepository.findByStore_IdAndEmailIgnoreCase(store.getId(), request.getCustomerEmail().trim());
         }
 
         if (customer == null) {
@@ -262,6 +292,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             String phone = request.getCustomerPhone().trim();
             customer.setPhone(phone.isBlank() ? null : phone);
         }
+        customer.setStore(store);
 
         return customerRepository.save(customer);
     }
@@ -310,6 +341,10 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .customerEmail(invoice.getCustomerEmail())
                 .paymentMethod(invoice.getPaymentMethod())
                 .paymentReference(invoice.getPaymentReference())
+                .subtotal(invoice.getSubtotal() != null ? invoice.getSubtotal().doubleValue() : null)
+                .taxTotal(invoice.getTaxTotal() != null ? invoice.getTaxTotal().doubleValue() : null)
+                .discountTotal(invoice.getDiscountTotal() != null ? invoice.getDiscountTotal().doubleValue() : null)
+                .grandTotal(invoice.getGrandTotal() != null ? invoice.getGrandTotal().doubleValue() : null)
                 .message(messageForStatus(invoice.getDeliveryStatus()))
                 .build();
     }
@@ -343,11 +378,131 @@ public class InvoiceServiceImpl implements InvoiceService {
         return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
     }
 
+    private void applyPaymentBreakdown(Order order, CompletePaymentRequest request) {
+        BigDecimal subtotal = resolveSubtotal(order, request);
+        BigDecimal taxTotal = resolveTaxTotal(order, request, subtotal, null);
+        BigDecimal discountTotal = resolveDiscountTotal(order, request, subtotal, taxTotal);
+        BigDecimal grandTotal = resolveGrandTotal(order, request, subtotal, taxTotal, discountTotal);
+
+        order.setSubtotal(subtotal.doubleValue());
+        order.setTaxRate(resolveTaxRate(order, request, null).doubleValue());
+        order.setTaxAmount(taxTotal.doubleValue());
+        order.setDiscountType(firstNonBlankOrNull(request.getDiscountType(), order.getDiscountType()));
+        order.setDiscountValue(resolveDiscountValue(order, request, subtotal).doubleValue());
+        order.setDiscountAmount(discountTotal.doubleValue());
+        order.setTotalAmount(grandTotal.doubleValue());
+    }
+
+    private BigDecimal resolveSubtotal(Order order, CompletePaymentRequest request) {
+        if (request.getSubtotal() != null) {
+            return toMoney(request.getSubtotal());
+        }
+        if (order.getSubtotal() != null) {
+            return toMoney(order.getSubtotal());
+        }
+        return toMoney(order.getTotalAmount());
+    }
+
+    private BigDecimal resolveTaxTotal(Order order, CompletePaymentRequest request, BigDecimal subtotal, BranchSettingsRequest.TaxSettings taxSettings) {
+        if (request.getTaxAmount() != null) {
+            return toMoney(request.getTaxAmount());
+        }
+        if (order.getTaxAmount() != null) {
+            return toMoney(order.getTaxAmount());
+        }
+        BigDecimal taxRate = resolveTaxRate(order, request, taxSettings);
+        if (taxRate.compareTo(BigDecimal.ZERO) > 0 && subtotal.compareTo(BigDecimal.ZERO) > 0) {
+            return subtotal.multiply(taxRate).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        }
+        return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolveDiscountTotal(Order order, CompletePaymentRequest request, BigDecimal subtotal, BigDecimal taxTotal) {
+        if (request.getDiscountAmount() != null) {
+            return toMoney(request.getDiscountAmount());
+        }
+        if (order.getDiscountAmount() != null) {
+            return toMoney(order.getDiscountAmount());
+        }
+
+        BigDecimal discountValue = resolveDiscountValue(order, request, subtotal);
+        String discountType = firstNonBlankOrNull(request.getDiscountType(), order.getDiscountType());
+        if (discountValue.compareTo(BigDecimal.ZERO) <= 0 || discountType == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+
+        if ("percentage".equalsIgnoreCase(discountType) || "percent".equalsIgnoreCase(discountType)) {
+            return subtotal.multiply(discountValue).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        }
+
+        return discountValue.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolveGrandTotal(Order order, CompletePaymentRequest request, BigDecimal subtotal, BigDecimal taxTotal, BigDecimal discountTotal) {
+        if (request.getTotalAmount() != null) {
+            return toMoney(request.getTotalAmount());
+        }
+        if (order.getTotalAmount() != null) {
+            return toMoney(order.getTotalAmount());
+        }
+        BigDecimal total = subtotal.add(taxTotal).subtract(discountTotal);
+        return total.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolveTaxRate(Order order, CompletePaymentRequest request, BranchSettingsRequest.TaxSettings taxSettings) {
+        if (request.getTaxRate() != null) {
+            return toMoney(request.getTaxRate());
+        }
+        if (order.getTaxRate() != null) {
+            return toMoney(order.getTaxRate());
+        }
+        if (taxSettings != null && Boolean.TRUE.equals(taxSettings.getGstEnabled()) && taxSettings.getGstPercentage() != null) {
+            return taxSettings.getGstPercentage().setScale(2, RoundingMode.HALF_UP);
+        }
+        return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolveDiscountValue(Order order, CompletePaymentRequest request, BigDecimal subtotal) {
+        if (request.getDiscountValue() != null) {
+            return toMoney(request.getDiscountValue());
+        }
+        if (order.getDiscountValue() != null) {
+            return toMoney(order.getDiscountValue());
+        }
+        BigDecimal discountAmount = request.getDiscountAmount() != null ? toMoney(request.getDiscountAmount()) : toMoney(order.getDiscountAmount());
+        String discountType = firstNonBlank(request.getDiscountType(), order.getDiscountType(), null);
+        if (discountAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        if (discountType != null && ("percentage".equalsIgnoreCase(discountType) || "percent".equalsIgnoreCase(discountType)) && subtotal.compareTo(BigDecimal.ZERO) > 0) {
+            return discountAmount.multiply(BigDecimal.valueOf(100)).divide(subtotal, 2, RoundingMode.HALF_UP);
+        }
+        return discountAmount.setScale(2, RoundingMode.HALF_UP);
+    }
+
     private String resolveStoreAddress(Store store, Branch branch) {
         if (store.getContact() != null && store.getContact().getAddress() != null && !store.getContact().getAddress().isBlank()) {
             return store.getContact().getAddress();
         }
         return branch.getAddress();
+    }
+
+    private BigDecimal sumOrderItemTotals(List<OrderItem> items) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (OrderItem item : items) {
+            total = total.add(toMoney(item.getPrice()));
+        }
+        return total.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    @SafeVarargs
+    private final <T> T firstNonNull(T... values) {
+        for (T value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private <T> T readJson(String value, Class<T> type) {
@@ -368,5 +523,14 @@ public class InvoiceServiceImpl implements InvoiceService {
             }
         }
         return "Walk-in Customer";
+    }
+
+    private String firstNonBlankOrNull(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
     }
 }

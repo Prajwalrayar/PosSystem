@@ -30,7 +30,55 @@ const InvoiceDialog = ({ showInvoiceDialog, setShowInvoiceDialog }) => {
   const cartOrder = useSelector((state) => state.cart.currentOrder);
   const invoiceState = useSelector((state) => state.invoice);
 
-  const selectedOrder = invoiceState.currentInvoice?.order || cartOrder || orderState.selectedOrder;
+  const fallbackOrder = cartOrder || orderState.selectedOrder;
+  const selectedOrder = React.useMemo(() => {
+    const invoicePayload = invoiceState.currentInvoice;
+    const invoiceOrder = invoicePayload?.order;
+    const baseOrder = invoiceOrder || fallbackOrder;
+
+    if (!baseOrder) {
+      return null;
+    }
+
+    const subtotal = Number(
+      invoicePayload?.subtotal ?? invoicePayload?.invoice?.subtotal ?? baseOrder?.subtotal ?? baseOrder?.subTotal ?? 0
+    );
+    const taxTotal = Number(
+      invoicePayload?.taxTotal ??
+        invoicePayload?.invoice?.taxTotal ??
+        invoicePayload?.invoice?.taxAmount ??
+        baseOrder?.taxTotal ??
+        baseOrder?.taxAmount ??
+        0
+    );
+    const discountTotal = Number(
+      invoicePayload?.discountTotal ??
+        invoicePayload?.invoice?.discountTotal ??
+        invoicePayload?.invoice?.discountAmount ??
+        baseOrder?.discountTotal ??
+        baseOrder?.discountAmount ??
+        0
+    );
+    const grandTotal = Number(
+      invoicePayload?.grandTotal ??
+        invoicePayload?.invoice?.grandTotal ??
+        baseOrder?.grandTotal ??
+        baseOrder?.totalAmount ??
+        0
+    );
+
+    return {
+      ...baseOrder,
+      subtotal,
+      taxTotal,
+      discountTotal,
+      grandTotal,
+      taxAmount: Number(baseOrder?.taxAmount ?? taxTotal),
+      discountAmount: Number(baseOrder?.discountAmount ?? discountTotal),
+      totalAmount: grandTotal,
+    };
+  }, [invoiceState.currentInvoice, fallbackOrder]);
+
   const invoiceId = getInvoiceIdFromOrder(invoiceState.currentInvoice) || getInvoiceIdFromOrder(selectedOrder);
   const invoicePdfUrl = getInvoicePdfUrlFromOrder(invoiceState.currentInvoice) || getInvoicePdfUrlFromOrder(selectedOrder);
   const invoiceDeliveryStatus =

@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useDispatch, useSelector } from 'react-redux';
-import { getAllCustomers } from '@/Redux Toolkit/features/customer/customerThunks';
+import { getAllCustomers, getCustomerById } from '@/Redux Toolkit/features/customer/customerThunks';
 import CustomerForm from './CustomerForm';
 import { setSelectedCustomer } from '../../../Redux Toolkit/features/cart/cartSlice';
+import { clearCustomerState } from '@/Redux Toolkit/features/customer/customerSlice';
 import { useToast } from '../../../components/ui/use-toast';
 
 const CustomerDialog = ({
@@ -16,15 +17,28 @@ const CustomerDialog = ({
   const dispatch = useDispatch();
   const { toast } = useToast();
   const { customers, loading } = useSelector(state => state.customer);
+  const { userProfile } = useSelector((state) => state.user);
+  const branch = useSelector((state) => state.branch.branch);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [fetchRetryCount, setFetchRetryCount] = useState(0);
 
-  // Fetch customers when dialog opens
+  const activeScopeKey = `${userProfile?.id || "anon"}:${branch?.storeId || userProfile?.storeId || "none"}:${branch?.id || userProfile?.branchId || "none"}`;
+
+  // Refresh customers whenever store/branch scope changes
   useEffect(() => {
-    if (showCustomerDialog) {
-      dispatch(getAllCustomers());
+    dispatch(clearCustomerState());
+    dispatch(setSelectedCustomer(null));
+    setFetchRetryCount(0);
+    dispatch(getAllCustomers());
+  }, [dispatch, activeScopeKey]);
+
+  useEffect(() => {
+    if (!showCustomerDialog) {
+      return;
     }
+    dispatch(getAllCustomers());
   }, [showCustomerDialog, dispatch]);
 
   // Filter customers based on search term
@@ -34,19 +48,57 @@ const CustomerDialog = ({
     customer.phone?.includes(searchTerm)
   );
 
-    const handleCustomerSelect = (customer) => {
-      dispatch(
-        setSelectedCustomer({
-          ...customer,
-          name: customer?.name || customer?.fullName || "",
-        })
-      );
-      setShowCustomerDialog(false);
-      toast({
-        title: "Customer Selected",
-        description: `${customer?.fullName || customer?.name || "Customer"} selected for this order`,
-      });
+    const handleCustomerSelect = async (customer) => {
+      try {
+        const verifiedCustomer = await dispatch(getCustomerById(customer.id)).unwrap();
+        dispatch(
+          setSelectedCustomer({
+            ...verifiedCustomer,
+            name: verifiedCustomer?.name || verifiedCustomer?.fullName || "",
+          })
+        );
+        setShowCustomerDialog(false);
+        toast({
+          title: "Customer Selected",
+          description: `${verifiedCustomer?.fullName || verifiedCustomer?.name || "Customer"} selected for this order`,
+        });
+      } catch (errorPayload) {
+        const status = errorPayload?.status;
+        if (status === 403 || status === 404) {
+          dispatch(setSelectedCustomer(null));
+          dispatch(getAllCustomers());
+          toast({
+            title: "Customer Unavailable",
+            description: "Customer not available in this store.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Selection Failed",
+          description: errorPayload?.message || "Failed to select customer",
+          variant: "destructive",
+        });
+      }
     };
+
+  useEffect(() => {
+    if (!showCustomerDialog) {
+      return;
+    }
+    if (loading) {
+      return;
+    }
+    if (customers.length > 0) {
+      return;
+    }
+    if (fetchRetryCount > 0) {
+      return;
+    }
+
+    setFetchRetryCount(1);
+    dispatch(getAllCustomers());
+  }, [showCustomerDialog, loading, customers.length, fetchRetryCount, dispatch]);
 
 
 
@@ -73,7 +125,7 @@ const CustomerDialog = ({
           ) : filteredCustomers.length === 0 ? (
             <div className="flex items-center justify-center py-8">
               <p className="text-gray-500">
-                {searchTerm ? 'No customers found matching your search.' : 'No customers available.'}
+                {searchTerm ? 'No customers found matching your search.' : 'No customers in this store yet'}
               </p>
             </div>
           ) : (

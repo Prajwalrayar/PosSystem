@@ -115,6 +115,7 @@ class P0ServiceTests {
         customerService = new CustomerServiceImpl(
                 customerRepository,
                 loyaltyTransactionRepository,
+                storeRepository,
                 delegatedUserService
         );
     }
@@ -214,12 +215,16 @@ class P0ServiceTests {
     @Test
     void createLoyaltyTransactionRejectsNegativeResultingBalance() {
         User actor = user(5L, "cashier@pos.com", UserRole.ROLE_BRANCH_CASHIER);
+        com.zosh.modal.Store store = new com.zosh.modal.Store();
+        store.setId(77L);
+        actor.setStore(store);
         Customer customer = new Customer();
         customer.setId(10L);
         customer.setLoyaltyPoints(20);
+        customer.setStore(store);
 
         when(delegatedUserService.getCurrentUser()).thenReturn(actor);
-        when(customerRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
+        when(customerRepository.findByStore_IdAndId(store.getId(), customer.getId())).thenReturn(customer);
 
         LoyaltyTransactionRequest request = new LoyaltyTransactionRequest();
         request.setType(LoyaltyTransactionType.DEDUCT);
@@ -234,12 +239,16 @@ class P0ServiceTests {
     @Test
     void createLoyaltyTransactionUpdatesBalanceAndAuditLog() throws Exception {
         User actor = user(5L, "cashier@pos.com", UserRole.ROLE_BRANCH_CASHIER);
+        com.zosh.modal.Store store = new com.zosh.modal.Store();
+        store.setId(77L);
+        actor.setStore(store);
         Customer customer = new Customer();
         customer.setId(10L);
         customer.setLoyaltyPoints(240);
+        customer.setStore(store);
 
         when(delegatedUserService.getCurrentUser()).thenReturn(actor);
-        when(customerRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
+        when(customerRepository.findByStore_IdAndId(store.getId(), customer.getId())).thenReturn(customer);
         when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(loyaltyTransactionRepository.save(any(LoyaltyTransaction.class))).thenAnswer(invocation -> {
             LoyaltyTransaction tx = invocation.getArgument(0);

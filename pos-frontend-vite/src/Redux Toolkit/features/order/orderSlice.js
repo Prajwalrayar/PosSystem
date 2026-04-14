@@ -9,6 +9,17 @@ import {
   getOrdersByCustomer,
   getRecentOrdersByBranch
 } from './orderThunks';
+import { logout } from '../user/userThunks';
+
+const getErrorMessage = (payload, fallback = 'Something went wrong') => {
+  if (!payload) {
+    return fallback;
+  }
+  if (typeof payload === 'string') {
+    return payload;
+  }
+  return payload.message || fallback;
+};
 
 const initialState = {
   orders: [],
@@ -34,6 +45,11 @@ const orderSlice = createSlice({
     clearCustomerOrders: (state) => {
       state.customerOrders = [];
     },
+    clearOrderPreviewState: (state) => {
+      state.selectedOrder = null;
+      state.customerOrders = [];
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -47,7 +63,7 @@ const orderSlice = createSlice({
       })
       .addCase(createOrder.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = getErrorMessage(action.payload, 'Failed to create order');
       })
 
       .addCase(getOrderById.fulfilled, (state, action) => {
@@ -75,6 +91,16 @@ const orderSlice = createSlice({
         state.recentOrders = action.payload;
       })
 
+      .addCase(logout.fulfilled, (state) => {
+        state.orders = [];
+        state.todayOrders = [];
+        state.customerOrders = [];
+        state.selectedOrder = null;
+        state.loading = false;
+        state.error = null;
+        state.recentOrders = [];
+      })
+
       .addCase(deleteOrder.fulfilled, (state, action) => {
         state.orders = state.orders.filter((o) => o.id !== action.payload);
       })
@@ -82,11 +108,11 @@ const orderSlice = createSlice({
       .addMatcher(
         (action) => action.type.startsWith('order/') && action.type.endsWith('/rejected'),
         (state, action) => {
-          state.error = action.payload;
+          state.error = getErrorMessage(action.payload);
         }
       );
   },
 });
 
-export const { clearOrderState, clearCustomerOrders } = orderSlice.actions;
+export const { clearOrderState, clearCustomerOrders, clearOrderPreviewState } = orderSlice.actions;
 export default orderSlice.reducer;

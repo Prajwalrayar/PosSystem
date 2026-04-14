@@ -1,11 +1,18 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { createPaymentLinkThunk, proceedPaymentThunk } from "./paymentThunks";
+import {
+  createPaymentLinkThunk,
+  fetchPaymentGatewayStatus,
+  proceedPaymentThunk,
+} from "./paymentThunks";
 
 const initialState = {
   paymentLink: null,
   loading: false,
   error: null,
   status: "idle",
+  gatewayStatus: null,
+  gatewayStatusLoading: false,
+  gatewayStatusError: null,
 };
 
 const paymentSlice = createSlice({
@@ -42,6 +49,18 @@ const paymentSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.status = "failed";
+      })
+      .addCase(fetchPaymentGatewayStatus.pending, (state) => {
+        state.gatewayStatusLoading = true;
+        state.gatewayStatusError = null;
+      })
+      .addCase(fetchPaymentGatewayStatus.fulfilled, (state, action) => {
+        state.gatewayStatusLoading = false;
+        state.gatewayStatus = action.payload;
+      })
+      .addCase(fetchPaymentGatewayStatus.rejected, (state, action) => {
+        state.gatewayStatusLoading = false;
+        state.gatewayStatusError = action.payload;
       });
   },
 });

@@ -1,4 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { logout } from "../user/userThunks";
+
+const getItemUnitPrice = (item) => {
+  const value = Number(item?.sellingPrice ?? item?.price ?? 0);
+  return Number.isFinite(value) ? value : 0;
+};
+
+const toMoney = (value) => Number(Number(value || 0).toFixed(2));
 
 const initialState = {
   items: [],
@@ -121,6 +129,16 @@ const cartSlice = createSlice({
       state.paymentMethod = "cash";
       state.currentOrder = null;
     },
+
+    resetCheckoutContext: (state) => {
+      state.selectedCustomer = null;
+      state.note = "";
+      state.discount = { type: "percentage", value: 0 };
+      state.currentOrder = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(logout.fulfilled, () => ({ ...initialState }));
   },
 });
 
@@ -137,26 +155,29 @@ export const selectCurrentOrder = (state) => state.cart.currentOrder;
 
 // Calculation selectors
 export const selectSubtotal = (state) => {
-  return state.cart.items.reduce(
-    (total, item) => total + item.sellingPrice * item.quantity,
-    0
+  return toMoney(
+    state.cart.items.reduce(
+      (total, item) => total + getItemUnitPrice(item) * Number(item?.quantity || 0),
+      0
+    )
   );
 };
 
 export const selectTax = (state) => {
   const subtotal = selectSubtotal(state);
   const taxRate = Number(state.cart.taxRate || 0);
-  return subtotal * (taxRate / 100);
+  return toMoney(subtotal * (taxRate / 100));
 };
 
 export const selectDiscountAmount = (state) => {
   const subtotal = selectSubtotal(state);
   const discount = state.cart.discount;
+  const discountValue = Number(discount?.value || 0);
 
   if (discount.type === "percentage") {
-    return subtotal * (discount.value / 100);
+    return toMoney(subtotal * (discountValue / 100));
   } else {
-    return discount.value;
+    return toMoney(discountValue);
   }
 };
 
@@ -164,7 +185,27 @@ export const selectTotal = (state) => {
   const subtotal = selectSubtotal(state);
   const tax = selectTax(state);
   const discountAmount = selectDiscountAmount(state);
-  return subtotal + tax - discountAmount;
+  return toMoney(subtotal + tax - discountAmount);
+};
+
+export const selectCartPricingBreakdown = (state) => {
+  const subtotal = selectSubtotal(state);
+  const taxRate = Number(state.cart.taxRate || 0);
+  const taxAmount = selectTax(state);
+  const discountType = state.cart.discount?.type || "percentage";
+  const discountValue = Number(state.cart.discount?.value || 0);
+  const discountAmount = selectDiscountAmount(state);
+  const total = selectTotal(state);
+
+  return {
+    subtotal,
+    taxRate,
+    taxAmount,
+    discountType,
+    discountValue,
+    discountAmount,
+    total,
+  };
 };
 
 export const {
@@ -181,6 +222,7 @@ export const {
   resumeOrder,
   setCurrentOrder,
   resetOrder,
+  resetCheckoutContext,
 } = cartSlice.actions;
 
 export default cartSlice.reducer;

@@ -29,6 +29,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final BranchRepository branchRepository;
+    private final CustomerRepository customerRepository;
+    private final StoreRepository storeRepository;
     private final UserService userService;
 
     @Autowired
@@ -45,10 +47,13 @@ public class OrderServiceImpl implements OrderService {
             throw new UserException("Cashier's branch is null");
         }
 
+        Store store = branch.getStore();
+        Customer customer = resolveOrderCustomer(dto.getCustomer(), store);
+
         Order order = Order.builder()
                 .branch(branch)
                 .cashier(cashier)
-                .customer(dto.getCustomer())
+                .customer(customer)
                 .paymentType(dto.getPaymentType())
                 .build();
 
@@ -70,6 +75,7 @@ public class OrderServiceImpl implements OrderService {
                 .mapToDouble(OrderItem::getPrice)
                 .sum();
 
+        order.setSubtotal(total);
         order.setTotalAmount(total);
         order.setItems(orderItems);
 
@@ -156,6 +162,14 @@ public class OrderServiceImpl implements OrderService {
     // ✅ GET ORDERS BY CUSTOMER
     @Override
     public List<OrderDTO> getOrdersByCustomerId(Long customerId) {
+        Store store = resolveCurrentStore();
+        if (store == null) {
+            throw new EntityNotFoundException("Store not found");
+        }
+        Customer customer = customerRepository.findByStore_IdAndId(store.getId(), customerId);
+        if (customer == null) {
+            throw new EntityNotFoundException("Customer not found");
+        }
 
         List<Order> orders = orderRepository.findByCustomerId(customerId);
 
@@ -177,5 +191,51 @@ public class OrderServiceImpl implements OrderService {
         return orders.stream()
                 .map(OrderMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    private Store resolveCurrentStore() {
+        User currentUser = userService.getCurrentUser();
+        if (currentUser.getStore() != null) {
+            return currentUser.getStore();
+        }
+        if (currentUser.getBranch() != null && currentUser.getBranch().getStore() != null) {
+            return currentUser.getBranch().getStore();
+        }
+        Store store = storeRepository.findByStoreAdminId(currentUser.getId());
+        if (store != null) {
+            return store;
+        }
+        throw new EntityNotFoundException("Store not found");
+    }
+
+    private Customer resolveOrderCustomer(Customer requestCustomer, Store store) {
+        if (requestCustomer == null) {
+            return null;
+        }
+
+        if (requestCustomer.getId() != null) {
+            Customer existing = customerRepository.findByStore_IdAndId(store.getId(), requestCustomer.getId());
+            if (existing == null) {
+                throw new EntityNotFoundException("Customer not found");
+            }
+            return existing;
+        }
+
+        Customer resolved = null;
+        if (requestCustomer.getEmail() != null && !requestCustomer.getEmail().isBlank()) {
+            String email = requestCustomer.getEmail().trim().toLowerCase();
+            resolved = customerRepository.findByStore_IdAndEmailIgnoreCase(store.getId(), email);
+            if (resolved == null) {
+                resolved = new Customer();
+            }
+            resolved.setEmail(email);
+        } else {
+            resolved = new Customer();
+        }
+
+        resolved.setFullName(requestCustomer.getFullName());
+        resolved.setPhone(requestCustomer.getPhone());
+        resolved.setStore(store);
+        return customerRepository.save(resolved);
     }
 }

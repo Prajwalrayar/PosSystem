@@ -22,6 +22,18 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Double subtotal;
+
+    private Double taxRate;
+
+    private Double taxAmount;
+
+    private String discountType;
+
+    private Double discountValue;
+
+    private Double discountAmount;
+
     private Double totalAmount;
 
     private LocalDateTime createdAt;

@@ -19,6 +19,20 @@ public class CompletePaymentRequest {
 
     private String customerName;
 
+    private Double subtotal;
+
+    private Double taxRate;
+
+    private Double taxAmount;
+
+    private String discountType;
+
+    private Double discountValue;
+
+    private Double discountAmount;
+
+    private Double totalAmount;
+
     @NotBlank(message = "Customer email is required")
     @Email(message = "Customer email must be valid")
     private String customerEmail;

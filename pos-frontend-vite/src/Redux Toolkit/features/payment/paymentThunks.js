@@ -1,6 +1,18 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../../utils/api";
 
+const getBearerToken = () =>
+  sessionStorage.getItem("jwt") ||
+  sessionStorage.getItem("token") ||
+  localStorage.getItem("jwt") ||
+  localStorage.getItem("token");
+
+const getAuthHeaders = () => ({
+  headers: {
+    Authorization: `Bearer ${getBearerToken()}`,
+  },
+});
+
 export const createPaymentLinkThunk = createAsyncThunk(
   "payment/createPaymentLink",
   async ({ planId, paymentMethod }, { rejectWithValue }) => {
@@ -34,6 +46,18 @@ export const proceedPaymentThunk = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const fetchPaymentGatewayStatus = createAsyncThunk(
+  "payment/fetchGatewayStatus",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/api/payments/gateway-status", getAuthHeaders());
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.response?.data?.message || "Failed to fetch gateway status");
     }
   }
 );

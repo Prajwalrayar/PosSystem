@@ -7,11 +7,13 @@ import com.zosh.exception.ResourceNotFoundException;
 import com.zosh.modal.Customer;
 import com.zosh.modal.LoyaltyTransaction;
 import com.zosh.modal.LoyaltyTransactionType;
+import com.zosh.modal.Store;
 import com.zosh.modal.User;
 import com.zosh.payload.request.LoyaltyTransactionRequest;
 import com.zosh.payload.response.LoyaltyTransactionResponse;
 import com.zosh.repository.CustomerRepository;
 import com.zosh.repository.LoyaltyTransactionRepository;
+import com.zosh.repository.StoreRepository;
 import com.zosh.service.CustomerService;
 import com.zosh.service.UserService;
 import jakarta.transaction.Transactional;
@@ -27,47 +29,86 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
     private final LoyaltyTransactionRepository loyaltyTransactionRepository;
+    private final StoreRepository storeRepository;
     private final UserService userService;
 
     @Override
     public Customer createCustomer(Customer customer) {
+        Store store = getCurrentStore();
+        customer.setStore(store);
+
+        if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
+            String normalizedEmail = customer.getEmail().trim().toLowerCase();
+            customer.setEmail(normalizedEmail);
+
+            Customer existing = customerRepository.findByStore_IdAndEmailIgnoreCase(store.getId(), normalizedEmail);
+            if (existing != null) {
+                existing.setFullName(customer.getFullName());
+                existing.setPhone(customer.getPhone());
+                existing.setEmail(normalizedEmail);
+                existing.setStore(store);
+                return customerRepository.save(existing);
+            }
+        }
+
         return customerRepository.save(customer);
     }
 
     @Override
     public Customer updateCustomer(Long id, Customer customerData) throws ResourceNotFoundException {
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(
-                        () -> new ResourceNotFoundException("Customer not found with id " + id));
+        Store store = getCurrentStore();
+        Customer customer = customerRepository.findByStore_IdAndId(store.getId(), id);
+        if (customer == null) {
+            throw new ResourceNotFoundException("Customer not found with id " + id);
+        }
 
         customer.setFullName(customerData.getFullName());
         customer.setEmail(customerData.getEmail());
         customer.setPhone(customerData.getPhone());
+        customer.setStore(store);
+
+        if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
+            String normalizedEmail = customer.getEmail().trim().toLowerCase();
+            Customer existing = customerRepository.findByStore_IdAndEmailIgnoreCase(store.getId(), normalizedEmail);
+            if (existing != null && !existing.getId().equals(customer.getId())) {
+                throw new BusinessValidationException("email", "Customer email already exists in this store");
+            }
+            customer.setEmail(normalizedEmail);
+        }
 
         return customerRepository.save(customer);
     }
 
     @Override
     public void deleteCustomer(Long id) throws ResourceNotFoundException {
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id " + id));
+        Store store = getCurrentStore();
+        Customer customer = customerRepository.findByStore_IdAndId(store.getId(), id);
+        if (customer == null) {
+            throw new ResourceNotFoundException("Customer not found with id " + id);
+        }
         customerRepository.delete(customer);
     }
 
     @Override
     public Customer getCustomerById(Long id) throws ResourceNotFoundException {
-        return customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id " + id));
+        Store store = getCurrentStore();
+        Customer customer = customerRepository.findByStore_IdAndId(store.getId(), id);
+        if (customer == null) {
+            throw new ResourceNotFoundException("Customer not found with id " + id);
+        }
+        return customer;
     }
 
     @Override
     public List<Customer> getAllCustomers() {
-        return customerRepository.findAll();
+        Store store = getCurrentStore();
+        return customerRepository.findByStore_Id(store.getId());
     }
 
     @Override
     public List<Customer> searchCustomer(String keyword) {
-        return customerRepository.findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(keyword, keyword);
+        Store store = getCurrentStore();
+        return customerRepository.searchByStoreIdAndKeyword(store.getId(), keyword);
     }
 
     @Override
@@ -80,7 +121,11 @@ public class CustomerServiceImpl implements CustomerService {
             throw new AccessDeniedException("You are not allowed to adjust loyalty points");
         }
 
-        Customer customer = getCustomerById(customerId);
+        Store store = getCurrentStore();
+        Customer customer = customerRepository.findByStore_IdAndId(store.getId(), customerId);
+        if (customer == null) {
+            throw new ResourceNotFoundException("Customer not found with id " + customerId);
+        }
         int pointsBefore = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
         int delta = request.getType() == LoyaltyTransactionType.DEDUCT ? -request.getPoints() : request.getPoints();
         int pointsAfter = pointsBefore + delta;
@@ -107,6 +152,24 @@ public class CustomerServiceImpl implements CustomerService {
                 pointsAfter,
                 savedTransaction.getId()
         );
+    }
+
+    private Store getCurrentStore() {
+        User currentUser = userService.getCurrentUser();
+        if (currentUser.getStore() != null) {
+            return currentUser.getStore();
+        }
+
+        if (currentUser.getBranch() != null && currentUser.getBranch().getStore() != null) {
+            return currentUser.getBranch().getStore();
+        }
+
+        Store store = storeRepository.findByStoreAdminId(currentUser.getId());
+        if (store != null) {
+            return store;
+        }
+
+        throw new AccessDeniedException("No store assigned to the current user");
     }
 
 }

@@ -3,6 +3,7 @@ import { completeOrderPayment, fetchInvoiceStatus, sendInvoiceEmail } from "./in
 
 const initialState = {
   currentInvoice: null,
+  breakdown: null,
   completePaymentLoading: false,
   emailSending: false,
   statusLoading: false,
@@ -16,6 +17,7 @@ const invoiceSlice = createSlice({
   reducers: {
     clearInvoiceState: (state) => {
       state.currentInvoice = null;
+      state.breakdown = null;
       state.completePaymentLoading = false;
       state.emailSending = false;
       state.statusLoading = false;
@@ -33,6 +35,12 @@ const invoiceSlice = createSlice({
       .addCase(completeOrderPayment.fulfilled, (state, action) => {
         state.completePaymentLoading = false;
         state.currentInvoice = action.payload;
+        state.breakdown = {
+          subtotal: action.payload?.subtotal,
+          taxTotal: action.payload?.taxTotal,
+          discountTotal: action.payload?.discountTotal,
+          grandTotal: action.payload?.grandTotal,
+        };
         state.successMessage = "Invoice created successfully";
       })
       .addCase(completeOrderPayment.rejected, (state, action) => {
@@ -50,6 +58,12 @@ const invoiceSlice = createSlice({
           ...(state.currentInvoice || {}),
           ...(action.payload || {}),
         };
+        state.breakdown = {
+          subtotal: action.payload?.subtotal ?? state.breakdown?.subtotal,
+          taxTotal: action.payload?.taxTotal ?? state.breakdown?.taxTotal,
+          discountTotal: action.payload?.discountTotal ?? state.breakdown?.discountTotal,
+          grandTotal: action.payload?.grandTotal ?? state.breakdown?.grandTotal,
+        };
         state.successMessage = "Invoice email sent";
       })
       .addCase(sendInvoiceEmail.rejected, (state, action) => {
@@ -65,6 +79,12 @@ const invoiceSlice = createSlice({
         state.currentInvoice = {
           ...(state.currentInvoice || {}),
           ...(action.payload || {}),
+        };
+        state.breakdown = {
+          subtotal: action.payload?.subtotal ?? state.breakdown?.subtotal,
+          taxTotal: action.payload?.taxTotal ?? state.breakdown?.taxTotal,
+          discountTotal: action.payload?.discountTotal ?? state.breakdown?.discountTotal,
+          grandTotal: action.payload?.grandTotal ?? state.breakdown?.grandTotal,
         };
       })
       .addCase(fetchInvoiceStatus.rejected, (state, action) => {
