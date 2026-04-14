@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,11 +25,14 @@ import {
   Receipt,
   CreditCard,
   Save,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import { getBranchById, saveBranchSettings } from "@/Redux Toolkit/features/branch/branchThunks";
 import { clearBranchSettingsState } from "@/Redux Toolkit/features/branch/branchSlice";
+import { fetchPaymentGatewayStatus } from "@/Redux Toolkit/features/payment/paymentThunks";
 import BranchInfo from "./BranchInfo";
 import { useToast } from "@/components/ui/use-toast";
 import { extractApiError, mapApiErrorsByField } from "@/utils/apiError";
@@ -37,6 +41,7 @@ const Settings = () => {
   const dispatch = useDispatch();
   const { userProfile } = useSelector((state) => state.user);
   const { branchSettings } = useSelector((state) => state.branch);
+  const { gatewayStatus, gatewayStatusLoading } = useSelector((state) => state.payment);
   const { toast } = useToast();
   const [fieldErrors, setFieldErrors] = useState({});
   const normalizedUserRole = (userProfile?.role || "").trim().toUpperCase();
@@ -63,6 +68,8 @@ const Settings = () => {
           jwt: localStorage.getItem("jwt"),
         })
       );
+
+      dispatch(fetchPaymentGatewayStatus());
     }
   }, [dispatch, userProfile, canManageBranchSettings]);
 
@@ -101,6 +108,12 @@ const Settings = () => {
       "Promotional Offer",
     ],
   });
+
+  const gatewayConfigured = Boolean(gatewayStatus?.configured);
+  const gatewayMissingFields = gatewayStatus?.missingFields || [];
+  const gatewayRequiredKeys = ["RAZORPAY_API_KEY", "RAZORPAY_API_SECRET"];
+  const gatewayWarningForUpi = paymentSettings.acceptUPI && !gatewayConfigured;
+  const gatewayWarningForCard = paymentSettings.acceptCard && !gatewayConfigured;
 
   const handlePrinterSettingsChange = (field, value) => {
     setPrinterSettings({
@@ -539,6 +552,54 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <Card className="border-dashed">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Payment Gateway Status</CardTitle>
+                  <CardDescription>
+                    Gateway credentials are managed by backend environment variables, not by branch settings.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 pt-0">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-medium">Gateway:</span>
+                    <span>{gatewayStatus?.gateway || "RAZORPAY"}</span>
+                    {gatewayConfigured ? (
+                      <Badge className="ml-2 bg-green-600 hover:bg-green-600">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Configured
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="ml-2">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Not Configured
+                      </Badge>
+                    )}
+                  </div>
+                  {gatewayMissingFields.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Missing fields: {gatewayMissingFields.join(", ")}
+                    </p>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    <p className="font-medium">Key validation:</p>
+                    {gatewayRequiredKeys.map((key) => {
+                      const isMissing = gatewayMissingFields.includes(key);
+                      return (
+                        <p key={key}>
+                          {key}: {isMissing ? "Missing" : "Valid"}
+                        </p>
+                      );
+                    })}
+                  </div>
+                  {gatewayStatus?.message && (
+                    <p className="text-xs text-muted-foreground">{gatewayStatus.message}</p>
+                  )}
+                  {gatewayStatusLoading && (
+                    <p className="text-xs text-muted-foreground">Checking gateway status...</p>
+                  )}
+                </CardContent>
+              </Card>
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <label htmlFor="accept-cash" className="text-sm font-medium">
@@ -557,6 +618,9 @@ const Settings = () => {
                   <label htmlFor="accept-upi" className="text-sm font-medium">
                     Accept UPI Payments
                   </label>
+                  {gatewayWarningForUpi && (
+                    <Badge variant="destructive" className="mr-2">Gateway invalid</Badge>
+                  )}
                   <Switch
                     id="accept-upi"
                     checked={paymentSettings.acceptUPI}
@@ -588,6 +652,9 @@ const Settings = () => {
                   <label htmlFor="accept-card" className="text-sm font-medium">
                     Accept Card Payments
                   </label>
+                  {gatewayWarningForCard && (
+                    <Badge variant="destructive" className="mr-2">Gateway invalid</Badge>
+                  )}
                   <Switch
                     id="accept-card"
                     checked={paymentSettings.acceptCard}
@@ -618,6 +685,13 @@ const Settings = () => {
                     {fieldErrors["payment.cardTerminalId"] && (
                       <p className="text-xs text-red-600">{fieldErrors["payment.cardTerminalId"]}</p>
                     )}
+                  </div>
+                )}
+
+                {(gatewayWarningForUpi || gatewayWarningForCard) && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    UPI/Card is enabled for this branch, but gateway configuration is invalid. Cashier can see UPI/Card,
+                    but checkout will block until backend gateway env vars are configured.
                   </div>
                 )}
               </div>

@@ -24,7 +24,8 @@ import {
 } from "./components";
 import { clearCustomerOrders } from "../../../Redux Toolkit/features/order/orderSlice";
 import CustomerForm from "./CustomerForm";
-import { clearLoyaltyPointsState } from "@/Redux Toolkit/features/customer/customerSlice";
+import { clearCustomerState, clearLoyaltyPointsState } from "@/Redux Toolkit/features/customer/customerSlice";
+import { setSelectedCustomer as setCartSelectedCustomer } from "@/Redux Toolkit/features/cart/cartSlice";
 import { getApiErrorMessage } from "@/utils/apiError";
 
 const CustomerLookupPage = () => {
@@ -43,7 +44,8 @@ const CustomerLookupPage = () => {
     loading: orderLoading,
     error: orderError,
   } = useSelector((state) => state.order);
-  // const { userProfile } = useSelector((state) => state.user);
+  const { userProfile } = useSelector((state) => state.user);
+  const branch = useSelector((state) => state.branch.branch);
 
   // Local state
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,23 +54,37 @@ const CustomerLookupPage = () => {
   const [pointsToAdd, setPointsToAdd] = useState(0);
   const [pointsNote, setPointsNote] = useState("");
   const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [fetchRetryCount, setFetchRetryCount] = useState(0);
   
 
-  // Load customers on component mount
+  const activeScopeKey = `${userProfile?.id || "anon"}:${branch?.storeId || userProfile?.storeId || "none"}:${branch?.id || userProfile?.branchId || "none"}`;
+
+  // Refresh customers for current store/branch scope only
   useEffect(() => {
+    dispatch(clearCustomerState());
+    dispatch(setCartSelectedCustomer(null));
+    setSelectedCustomer(null);
+    dispatch(clearCustomerOrders());
+    setFetchRetryCount(0);
     dispatch(getAllCustomers());
-  }, [dispatch]);
+  }, [dispatch, activeScopeKey]);
 
   // Handle errors
   useEffect(() => {
     if (customerError) {
+      if (fetchRetryCount === 0) {
+        setFetchRetryCount(1);
+        dispatch(getAllCustomers());
+        return;
+      }
+
       toast({
         title: "Error",
-        description: customerError,
+        description: getApiErrorMessage(customerError),
         variant: "destructive",
       });
     }
-  }, [customerError, toast]);
+  }, [customerError, toast, dispatch, fetchRetryCount]);
 
   useEffect(() => {
     if (orderError) {
@@ -89,7 +105,22 @@ const CustomerLookupPage = () => {
     dispatch(clearCustomerOrders());
     // Fetch customer orders
     if (customer.id) {
-      dispatch(getOrdersByCustomer(customer.id));
+      try {
+        await dispatch(getOrdersByCustomer(customer.id)).unwrap();
+      } catch (errorPayload) {
+        const status = errorPayload?.status;
+        if (status === 403 || status === 404) {
+          setSelectedCustomer(null);
+          dispatch(setCartSelectedCustomer(null));
+          dispatch(getAllCustomers());
+          toast({
+            title: "Customer Unavailable",
+            description: "Customer not available in this store.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
     }
   };
 
@@ -149,13 +180,18 @@ const CustomerLookupPage = () => {
       });
     }
   };
-
-
   useEffect(() => {
-    if (selectedCustomer) {
-      dispatch(getOrdersByCustomer(selectedCustomer.id));
+    if (!selectedCustomer?.id) {
+      return;
     }
-  }, [selectedCustomer]);
+
+    const stillExists = customers.some((customer) => customer.id === selectedCustomer.id);
+    if (!stillExists) {
+      setSelectedCustomer(null);
+      dispatch(setCartSelectedCustomer(null));
+      dispatch(clearCustomerOrders());
+    }
+  }, [customers, selectedCustomer, dispatch]);
 
   // Calculate customer stats from orders
   const customerStats = selectedCustomer

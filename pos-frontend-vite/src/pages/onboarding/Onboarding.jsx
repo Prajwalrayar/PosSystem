@@ -82,12 +82,16 @@ const Onboarding = () => {
       // Store creation step
       setLocalLoading(true);
       try {
+        const description =
+          updatedFormData.description ?? updatedFormData.storeAddress ?? "";
+
         await dispatch(createStore({
-         
             brand: updatedFormData.storeName,
             storeType: updatedFormData.storeType,
-            storeAddress: updatedFormData.storeAddress,
-          
+            description,
+            contact: {
+              address: updatedFormData.storeAddress ?? "",
+            },
         })).unwrap();
         // On success, redirect or show success
         navigate('/store');

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDispatch, useSelector } from "react-redux";
-import { createCustomer } from "@/Redux Toolkit/features/customer/customerThunks";
+import { createCustomer, getAllCustomers } from "@/Redux Toolkit/features/customer/customerThunks";
 import { toast } from "sonner";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
@@ -30,7 +30,7 @@ const CustomerForm = ({
       .max(50, "Full name must be less than 50 characters"),
     phone: Yup.string()
       .required("Phone number is required")
-      .matches(/^[\+]?[1-9][\d]{0,15}$/, "Please enter a valid phone number"),
+      .matches(/^\+?[1-9]\d{0,15}$/, "Please enter a valid phone number"),
     email: Yup.string().email("Please enter a valid email address").optional(),
   });
 
@@ -42,7 +42,14 @@ const CustomerForm = ({
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
-      await dispatch(createCustomer(values)).unwrap();
+      const payload = {
+        fullName: values.fullName?.trim() || "",
+        email: values.email?.trim() || "",
+        phone: values.phone?.trim() || "",
+      };
+
+      await dispatch(createCustomer(payload)).unwrap();
+      await dispatch(getAllCustomers());
       toast.success("Customer created successfully!");
 
       // Reset form and close dialog

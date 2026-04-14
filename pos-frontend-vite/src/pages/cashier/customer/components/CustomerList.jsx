@@ -22,8 +22,8 @@ const CustomerList = ({
     return (
       <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
         <UserIcon size={48} strokeWidth={1} />
-        <p className="mt-4">No customers found</p>
-        <p className="text-sm">Try a different search term</p>
+        <p className="mt-4">No customers in this store yet</p>
+        <p className="text-sm">Add a customer to start checkout with loyalty tracking</p>
       </div>
     );
   }

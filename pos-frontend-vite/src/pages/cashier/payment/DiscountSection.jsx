@@ -18,7 +18,7 @@ const DiscountSection = () => {
 
   // Compute values always, before any conditional rendering
   const needsManagerApproval = policy ? Boolean(policy?.discount?.requireManagerApproval) : false;
-  const isCashier = userRole === 'ROLE_CASHIER';
+  const isCashier = userRole === 'ROLE_BRANCH_CASHIER';
   const isDiscountAllowed = policy ? (Boolean(policy?.discount?.allowDiscount) && !(needsManagerApproval && isCashier)) : false;
   const maxDiscountPercentage = policy ? Number(policy?.discount?.maxDiscountPercentage || 0) : 0;
 

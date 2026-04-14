@@ -228,14 +228,16 @@ export const getOrdersByCustomer = createAsyncThunk(
       
       return res.data;
     } catch (err) {
+      const status = err.response?.status;
+      const message = err.response?.data?.message || 'Failed to fetch customer orders';
       console.error('❌ Failed to fetch customer orders:', {
         customerId,
         error: err.response?.data || err.message,
-        status: err.response?.status,
+        status,
         statusText: err.response?.statusText
       });
       
-      return rejectWithValue(err.response?.data?.message || 'Failed to fetch customer orders');
+      return rejectWithValue({ message, status });
     }
   }
 );

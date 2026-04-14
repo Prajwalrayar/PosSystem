@@ -10,6 +10,7 @@ import {
   // addEmployeeToBranch,
   // getEmployeesByBranch
 } from './branchThunks';
+import { logout } from '../user/userThunks';
 
 const initialState = {
   branch: null,
@@ -112,6 +113,21 @@ const branchSlice = createSlice({
       .addCase(saveBranchSettings.rejected, (state, action) => {
         state.branchSettings.saving = false;
         state.branchSettings.error = action.payload;
+      })
+
+      .addCase(logout.fulfilled, (state) => {
+        state.branch = null;
+        state.branches = [];
+        state.employees = [];
+        state.loading = false;
+        state.error = null;
+        state.branchSettings = {
+          data: null,
+          loading: false,
+          saving: false,
+          error: null,
+          successMessage: null,
+        };
       })
 
 

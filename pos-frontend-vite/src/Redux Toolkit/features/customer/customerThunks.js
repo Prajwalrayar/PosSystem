@@ -2,6 +2,12 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import api from '@/utils/api';
 import { addCustomerPoints as addCustomerPointsApi } from '@/utils/api';
 
+const buildCustomerPayload = (customer = {}) => ({
+  fullName: customer.fullName ?? '',
+  email: customer.email ?? '',
+  phone: customer.phone ?? '',
+});
+
 // Helper function to get JWT token
 const getAuthToken = () => {
   const token = localStorage.getItem('jwt');
@@ -25,10 +31,11 @@ export const createCustomer = createAsyncThunk(
   'customer/create',
   async (customer, { rejectWithValue }) => {
     try {
-      console.log('🔄 Creating customer...', { customer });
+      const payload = buildCustomerPayload(customer);
+      console.log('🔄 Creating customer...', { customer: payload });
       
       const headers = getAuthHeaders();
-      const res = await api.post('/api/customers', customer, { headers });
+      const res = await api.post('/api/customers', payload, { headers });
       
       console.log('✅ Customer created successfully:', {
         customerId: res.data.id,
@@ -43,7 +50,7 @@ export const createCustomer = createAsyncThunk(
         error: err.response?.data || err.message,
         status: err.response?.status,
         statusText: err.response?.statusText,
-        requestData: customer
+        requestData: buildCustomerPayload(customer)
       });
       
       return rejectWithValue(err.response?.data?.message || 'Failed to create customer');
@@ -56,10 +63,11 @@ export const updateCustomer = createAsyncThunk(
   'customer/update',
   async ({ id, customer }, { rejectWithValue }) => {
     try {
-      console.log('🔄 Updating customer...', { customerId: id, customer });
+      const payload = buildCustomerPayload(customer);
+      console.log('🔄 Updating customer...', { customerId: id, customer: payload });
       
       const headers = getAuthHeaders();
-      const res = await api.put(`/api/customers/${id}`, customer, { headers });
+      const res = await api.put(`/api/customers/${id}`, payload, { headers });
       
       console.log('✅ Customer updated successfully:', {
         customerId: res.data.id,
@@ -75,7 +83,7 @@ export const updateCustomer = createAsyncThunk(
         error: err.response?.data || err.message,
         status: err.response?.status,
         statusText: err.response?.statusText,
-        requestData: customer
+        requestData: buildCustomerPayload(customer)
       });
       
       return rejectWithValue(err.response?.data?.message || 'Failed to update customer');
@@ -123,14 +131,16 @@ export const getCustomerById = createAsyncThunk(
       
       return res.data;
     } catch (err) {
+      const status = err.response?.status;
+      const message = err.response?.data?.message || 'Customer not found';
       console.error('❌ Failed to fetch customer by ID:', {
         customerId: id,
         error: err.response?.data || err.message,
-        status: err.response?.status,
+        status,
         statusText: err.response?.statusText
       });
       
-      return rejectWithValue(err.response?.data?.message || 'Customer not found');
+      return rejectWithValue({ message, status });
     }
   }
 );

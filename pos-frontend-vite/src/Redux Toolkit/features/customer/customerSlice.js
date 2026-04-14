@@ -7,6 +7,17 @@ import {
   getAllCustomers,
   addCustomerPoints,
 } from './customerThunks';
+import { logout } from '../user/userThunks';
+
+const getErrorMessage = (payload, fallback = 'Something went wrong') => {
+  if (!payload) {
+    return fallback;
+  }
+  if (typeof payload === 'string') {
+    return payload;
+  }
+  return payload.message || fallback;
+};
 
 const initialState = {
   customers: [],
@@ -49,7 +60,7 @@ const customerSlice = createSlice({
       })
       .addCase(createCustomer.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = getErrorMessage(action.payload, 'Failed to create customer');
       })
 
       // Update Customer
@@ -68,7 +79,7 @@ const customerSlice = createSlice({
       })
       .addCase(updateCustomer.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = getErrorMessage(action.payload, 'Failed to update customer');
       })
 
       // Delete Customer
@@ -84,7 +95,7 @@ const customerSlice = createSlice({
       })
       .addCase(deleteCustomer.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = getErrorMessage(action.payload, 'Failed to delete customer');
       })
 
       // Get Customer by ID
@@ -97,7 +108,7 @@ const customerSlice = createSlice({
       })
       .addCase(getCustomerById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = getErrorMessage(action.payload, 'Customer not found');
       })
 
       // Get All Customers
@@ -110,7 +121,15 @@ const customerSlice = createSlice({
       })
       .addCase(getAllCustomers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = getErrorMessage(action.payload, 'Failed to fetch customers');
+      })
+
+      .addCase(logout.fulfilled, (state) => {
+        state.customers = [];
+        state.selectedCustomer = null;
+        state.loading = false;
+        state.error = null;
+        state.loyaltyPointsStatus = { isLoading: false, error: null, successMessage: null };
       })
 
       .addCase(addCustomerPoints.pending, (state) => {
@@ -141,14 +160,14 @@ const customerSlice = createSlice({
       })
       .addCase(addCustomerPoints.rejected, (state, action) => {
         state.loyaltyPointsStatus.isLoading = false;
-        state.loyaltyPointsStatus.error = action.payload;
+        state.loyaltyPointsStatus.error = getErrorMessage(action.payload, 'Failed to update loyalty points');
       })
 
       // Generic error handling for all customer actions
       .addMatcher(
         (action) => action.type.startsWith('customer/') && action.type.endsWith('/rejected'),
         (state, action) => {
-          state.error = action.payload;
+          state.error = getErrorMessage(action.payload);
         }
       );
   },
