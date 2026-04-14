@@ -24,5 +24,9 @@ public class InvoiceResponse {
     private String customerEmail;
     private String paymentMethod;
     private String paymentReference;
+    private Double subtotal;
+    private Double taxTotal;
+    private Double discountTotal;
+    private Double grandTotal;
     private String message;
 }

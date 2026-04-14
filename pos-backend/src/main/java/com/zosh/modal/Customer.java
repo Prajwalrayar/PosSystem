@@ -1,8 +1,7 @@
 package com.zosh.modal;
 
-import com.zosh.domain.UserRole;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,6 +13,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(
+        name = "customers",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"store_id", "email"})
+        }
+)
 @Getter
 @Setter
 @AllArgsConstructor
@@ -33,6 +38,10 @@ public class Customer {
 
     @Column(nullable = false)
     private Integer loyaltyPoints = 0;
+
+    @ManyToOne
+    @JsonIgnore
+    private Store store;
 
 
     @Column(nullable = false, updatable = false)

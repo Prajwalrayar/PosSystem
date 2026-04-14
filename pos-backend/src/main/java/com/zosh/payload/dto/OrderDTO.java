@@ -15,6 +15,12 @@ import java.util.List;
 @Builder
 public class OrderDTO {
     private Long id;
+    private Double subtotal;
+    private Double taxRate;
+    private Double taxAmount;
+    private String discountType;
+    private Double discountValue;
+    private Double discountAmount;
     private Double totalAmount;
     private Long branchId;
     private Long cashierId;

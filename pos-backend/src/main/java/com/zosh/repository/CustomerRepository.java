@@ -13,12 +13,27 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
             String fullName, String email);
 
     Customer findByEmailIgnoreCase(String email);
+    Customer findByStore_IdAndId(Long storeId, Long id);
+    Customer findByStore_IdAndEmailIgnoreCase(Long storeId, String email);
+    List<Customer> findByStore_Id(Long storeId);
+
+    @Query("""
+        SELECT c
+        FROM Customer c
+        WHERE c.store.id = :storeId
+          AND (
+            LOWER(c.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            OR LOWER(c.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+          )
+    """)
+    List<Customer> searchByStoreIdAndKeyword(@Param("storeId") Long storeId,
+                                             @Param("keyword") String keyword);
 
 //    analysis
 @Query("""
-        SELECT COUNT(DISTINCT o.customer.id)
-        FROM Order o
-        WHERE o.branch.store.storeAdmin.id = :storeAdminId
+        SELECT COUNT(c)
+        FROM Customer c
+        WHERE c.store.storeAdmin.id = :storeAdminId
     """)
 int countByStoreAdminId(@Param("storeAdminId") Long storeAdminId);
 }

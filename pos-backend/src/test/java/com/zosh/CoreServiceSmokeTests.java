@@ -20,6 +20,7 @@ import com.zosh.payload.dto.OrderItemDTO;
 import com.zosh.payload.dto.RefundDTO;
 import com.zosh.repository.BranchRepository;
 import com.zosh.repository.BranchSettingsRepository;
+import com.zosh.repository.CustomerRepository;
 import com.zosh.repository.OrderRepository;
 import com.zosh.repository.PasswordResetTokenRepository;
 import com.zosh.repository.ProductRepository;
@@ -58,6 +59,7 @@ class CoreServiceSmokeTests {
     @Mock private StoreRepository storeRepository;
     @Mock private UserRepository userRepository;
     @Mock private ProductRepository productRepository;
+    @Mock private CustomerRepository customerRepository;
     @Mock private OrderRepository orderRepository;
     @Mock private RefundRepository refundRepository;
     @Mock private ShiftReportRepository shiftReportRepository;
@@ -99,9 +101,18 @@ class CoreServiceSmokeTests {
     @Test
     void orderServiceCreatesOrderAndCalculatesTotal() throws Exception {
         UserService userService = org.mockito.Mockito.mock(UserService.class);
-        OrderServiceImpl orderService = new OrderServiceImpl(orderRepository, productRepository, branchRepository, userService);
+        OrderServiceImpl orderService = new OrderServiceImpl(
+                orderRepository,
+                productRepository,
+                branchRepository,
+                customerRepository,
+                storeRepository,
+                userService
+        );
 
         Branch branch = branch(20L, "Branch");
+        Store store = store(1L, user(99L, UserRole.ROLE_STORE_ADMIN));
+        branch.setStore(store);
         User cashier = user(2L, UserRole.ROLE_BRANCH_CASHIER);
         cashier.setBranch(branch);
         when(userService.getCurrentUser()).thenReturn(cashier);

@@ -13,6 +13,12 @@ public class OrderMapper {
     public static OrderDTO toDto(Order order) {
         return OrderDTO.builder()
                 .id(order.getId())
+                .subtotal(order.getSubtotal())
+                .taxRate(order.getTaxRate())
+                .taxAmount(order.getTaxAmount())
+                .discountType(order.getDiscountType())
+                .discountValue(order.getDiscountValue())
+                .discountAmount(order.getDiscountAmount())
                 .totalAmount(order.getTotalAmount())
                 .branchId(order.getBranch().getId())
                 .cashierId(order.getCashier().getId())

@@ -42,6 +42,11 @@ public class ShiftReportServiceImpl implements ShiftReportService {
         Branch branch = branchRepository.findById(branchId).orElseThrow(() ->
                 new RuntimeException("Branch not found with ID: " + branchId));
 
+        if (currentUser.getBranch() != null && currentUser.getBranch().getId() != null
+                && !currentUser.getBranch().getId().equals(branch.getId())) {
+            throw new UserException("You are not assigned to this branch");
+        }
+
         // Prevent duplicate shifts on the same day
         LocalDateTime startOfDay = shiftStart.withHour(0).withMinute(0).withSecond(0);
         LocalDateTime endOfDay = shiftStart.withHour(23).withMinute(59).withSecond(59);
@@ -50,7 +55,7 @@ public class ShiftReportServiceImpl implements ShiftReportService {
                 .findByCashierAndShiftStartBetween(currentUser, startOfDay, endOfDay);
 
         if (existing.isPresent()) {
-            throw new RuntimeException("Shift already started today.");
+            return existing.get();
         }
 
         ShiftReport shift = new ShiftReport();
