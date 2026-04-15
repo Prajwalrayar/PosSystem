@@ -164,11 +164,17 @@ export default function SmartAiModule() {
   const handleAnalyze = async (event) => {
     event.preventDefault();
 
-    const branchId = Number(formState.branchId);
+    const fallbackBranchId =
+      formState.branchId ||
+      branch?.id ||
+      userProfile?.branchId ||
+      branches?.[0]?.id ||
+      "";
+    const branchId = Number(fallbackBranchId);
     if (!Number.isInteger(branchId) || branchId < 1) {
       toast({
         title: "Invalid branch",
-        description: "Please select a valid branch.",
+        description: "Please select a valid branch to run Smart AI.",
         variant: "destructive",
       });
       return;
@@ -220,7 +226,7 @@ export default function SmartAiModule() {
           </div>
           <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-700">
             <Brain className="h-4 w-4 text-emerald-400" />
-            AI API connected to {import.meta.env.VITE_AI_API_BASE_URL}
+            Python AI API connected to {import.meta.env.VITE_AI_API_BASE_URL}
           </div>
         </div>
       </CardHeader>
@@ -373,12 +379,7 @@ export default function SmartAiModule() {
             <Button
               type="submit"
               className="w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400"
-              disabled={
-                isLoading ||
-                isLoadingData ||
-                !formState.branchId ||
-                products.length === 0
-              }
+              disabled={isLoading || isLoadingData}
             >
               {isLoading ? "Analyzing..." : "Run Smart AI"}
             </Button>
@@ -478,7 +479,7 @@ export default function SmartAiModule() {
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <p className="text-sm text-slate-500">Generated points</p>
                           <p className="text-2xl font-semibold">{result.chart.length}</p>
-                          <p className="mt-2 text-sm text-slate-600">The API returns a simulated forecast curve that the dashboard can later swap for a real ML model without changing the UI contract.</p>
+                          <p className="mt-2 text-sm text-slate-600">The API returns a forecast learned from the cleaned retail_store_100k dataset, so the UI can stay the same while the model improves over time.</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -522,7 +523,7 @@ export default function SmartAiModule() {
                           <p className="mt-1 text-2xl font-semibold">{result.summary.avgBasketSize.toFixed(2)}</p>
                         </div>
                         <p className="text-sm text-slate-600">
-                          The backend simulates association rules when no trained market-basket model is connected, which keeps the dashboard usable today and ML-ready later.
+                          The backend mines association rules from the cleaned retail_store_100k dataset and ranks the strongest basket combinations for the selected products.
                         </p>
                       </CardContent>
                     </Card>

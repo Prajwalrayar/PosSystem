@@ -4,6 +4,7 @@ from datetime import date
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional
 
 
 class AIAnalysisMode(str, Enum):
@@ -22,7 +23,7 @@ class SmartAIRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     mode: AIAnalysisMode
-    branchId: int = Field(ge=1)
+    branchId: Optional[int] = Field(default=None, ge=1)  # Made optional
     horizon: ForecastHorizon
     productNames: list[str] = Field(default_factory=list)
 
