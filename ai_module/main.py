@@ -6,6 +6,9 @@ import logging
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from services.ai_engine import AIEngine
+from typing import List
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -41,13 +44,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-engine = AIEngine()
-
-# Debug log to verify catalog_lookup initialization
-if not engine.catalog_lookup:
-    print("DEBUG: catalog_lookup is empty after AIEngine initialization.")
-else:
-    print(f"DEBUG: catalog_lookup initialized with {len(engine.catalog_lookup)} entries.")
+# Initialize AIEngine with the dataset path
+engine = AIEngine("Retail_store_300k.csv")
+engine.load_and_prepare_data()
+engine.train_models()
 
 
 @app.get("/health")
@@ -56,10 +56,15 @@ def health() -> dict[str, str]:
 
 
 @app.post("/api/smart-ai", response_model=SmartAIResponse)
-def smart_ai(payload: SmartAIRequest) -> SmartAIResponse:
+def analyze_products(request: SmartAIRequest) -> SmartAIResponse:
     try:
-        logger.debug(f"Received payload: {payload}")
-        response = engine.analyze(payload)
+        logger.debug(f"Received payload: {request}")
+        logger.debug(f"Raw request body: {request}")
+        response = engine.analyze(
+            mode=request.mode.value,
+            horizon=request.horizon.value,
+            product_names=request.productNames,
+        )
         logger.debug(f"Response: {response}")
         return response
     except ValueError as exc:

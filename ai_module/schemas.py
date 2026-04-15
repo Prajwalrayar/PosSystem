@@ -25,7 +25,7 @@ class SmartAIRequest(BaseModel):
     mode: AIAnalysisMode
     branchId: Optional[int] = Field(default=None, ge=1)  # Made optional
     horizon: ForecastHorizon
-    productNames: list[str] = Field(default_factory=list)
+    productNames: list[str] = Field(default_factory=list, alias="product_names")
 
 
 class DemandChartPoint(BaseModel):
@@ -61,6 +61,12 @@ class BasketResponse(BaseModel):
     mode: AIAnalysisMode = AIAnalysisMode.BASKET
     recommendations: list[BasketRecommendation]
     summary: BasketSummary
+
+
+class UnifiedAIResponse(BaseModel):
+    product: str
+    predicted_demand: float
+    recommendations: list[str]
 
 
 SmartAIResponse = DemandResponse | BasketResponse
