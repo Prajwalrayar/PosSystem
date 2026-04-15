@@ -56,6 +56,8 @@ const initialFormState = {
   horizon: "WEEK",
 };
 
+const normalizeToneKey = (value, fallback) => String(value || fallback).toUpperCase();
+
 export default function SmartAiModule() {
   const dispatch = useDispatch();
   const { toast } = useToast();
@@ -131,6 +133,9 @@ export default function SmartAiModule() {
       value: point.value,
     }));
   }, [result]);
+
+  const trendKey = normalizeToneKey(result?.summary?.trend, "STABLE");
+  const riskKey = normalizeToneKey(result?.summary?.stockRisk, "MEDIUM");
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat("en-IN", {
@@ -473,8 +478,8 @@ export default function SmartAiModule() {
                         <CardTitle className="text-lg">AI Summary</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <Pill label="Trend" value={result.summary.trend} tone={TREND_COLORS[result.summary.trend] || TREND_COLORS.STABLE} />
-                        <Pill label="Stock risk" value={result.summary.stockRisk} tone={RISK_COLORS[result.summary.stockRisk] || RISK_COLORS.MEDIUM} />
+                        <Pill label="Trend" value={result.summary.trend} tone={TREND_COLORS[trendKey] || TREND_COLORS.STABLE} />
+                        <Pill label="Stock risk" value={result.summary.stockRisk} tone={RISK_COLORS[riskKey] || RISK_COLORS.MEDIUM} />
 
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <p className="text-sm text-slate-500">Generated points</p>

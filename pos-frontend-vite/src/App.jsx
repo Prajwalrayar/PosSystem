@@ -274,7 +274,11 @@ const App = () => {
     );
   }
 
-  return content;
+  return (
+    <div className="App">
+      {content}
+    </div>
+  );
 };
 
 export default App;

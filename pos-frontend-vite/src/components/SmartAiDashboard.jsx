@@ -6,7 +6,7 @@ const SmartAiDashboard = () => {
     mode: "DEMAND", // or "BASKET"
     productNames: [],
     branchId: 1,
-    horizon: "SHORT_TERM", // Example value
+    horizon: "WEEK",
   });
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -68,8 +68,10 @@ const SmartAiDashboard = () => {
             value={payload.horizon}
             onChange={(e) => setPayload({ ...payload, horizon: e.target.value })}
           >
-            <option value="SHORT_TERM">Short Term</option>
-            <option value="LONG_TERM">Long Term</option>
+            <option value="DAY">Day</option>
+            <option value="WEEK">Week</option>
+            <option value="MONTH">Month</option>
+            <option value="YEAR">Year</option>
           </select>
         </label>
         <button type="submit" disabled={loading}>

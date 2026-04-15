@@ -20,7 +20,7 @@ class ForecastHorizon(str, Enum):
 
 
 class SmartAIRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     mode: AIAnalysisMode
     branchId: Optional[int] = Field(default=None, ge=1)  # Made optional

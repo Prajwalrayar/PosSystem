@@ -9,8 +9,22 @@ const smartAiApi = axios.create({
   },
 });
 
+const normalizeProductNames = (value) =>
+  Array.isArray(value)
+    ? value.map((item) => String(item).trim()).filter(Boolean)
+    : [];
+
+export const buildSmartAiPayload = (payload) => ({
+  mode: payload?.mode || "DEMAND",
+  branchId: payload?.branchId ? Number(payload.branchId) : undefined,
+  horizon: payload?.horizon || "WEEK",
+  productNames: normalizeProductNames(payload?.productNames ?? payload?.product_names),
+});
+
 export const fetchSmartAiAnalysis = (payload) => {
-  return smartAiApi.post("/api/smart-ai", payload).then((response) => response.data);
+  return smartAiApi
+    .post("/api/smart-ai", buildSmartAiPayload(payload))
+    .then((response) => response.data);
 };
 
 export default smartAiApi;

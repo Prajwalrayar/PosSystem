@@ -2,7 +2,7 @@ from datetime import date
 
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.model_selection import train_test_split
 
 
 class AIEngine:
@@ -14,6 +14,11 @@ class AIEngine:
         self.demand_model = None
         self.similarity_matrix = None
         self.products = None
+        self.product_ranking = None
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
 
     # -------------------------
     # DATA LOADING + CLEANING
@@ -81,12 +86,29 @@ class AIEngine:
         X = self.demand_df[["month"]]
         y = self.demand_df["quantity"]
 
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            X,
+            y,
+            test_size=0.3,
+            random_state=42,
+        )
+
         self.demand_model = RandomForestRegressor(
             n_estimators=100,
             random_state=42
         )
 
-        self.demand_model.fit(X, y)
+        self.demand_model.fit(self.X_train, self.y_train)
+
+        self.product_ranking = (
+            self.demand_df.sort_values("quantity", ascending=False)["product_name"]
+            .dropna()
+            .astype(str)
+            .tolist()
+        )
+
+        print("Train split shape:", self.X_train.shape)
+        print("Test split shape:", self.X_test.shape)
 
         # -------- BASKET MODEL --------
         # Validate data before creating the basket matrix
@@ -156,39 +178,27 @@ class AIEngine:
             if not product_names:
                 raise ValueError("Product names are required for basket analysis.")
 
-            if self.products is None or self.similarity_matrix is None:
-                self.products = sorted(self.demand_df["product_name"].dropna().astype(str).unique().tolist())
-                if self.products:
-                    size = len(self.products)
-                    self.similarity_matrix = pd.DataFrame(
-                        0.0,
-                        index=range(size),
-                        columns=range(size),
-                    ).values
-
             recommendations = []
-            for product in product_names:
-                if product not in self.products:
-                    recommendations.append(
-                        {
-                            "product": product,
-                            "confidence": 0.0,
-                            "support": 0.0,
-                            "lift": 0.0,
-                        }
-                    )
-                else:
-                    idx = self.products.index(product)
-                    recommendations.append(
-                        {
-                            "product": product,
-                            "confidence": 0.75,
-                            "support": 0.25,
-                            "lift": 1.0,
-                        }
-                    )
+            ranked_products = [
+                product for product in (self.product_ranking or [])
+                if product not in set(map(str, product_names))
+            ]
 
-            top_combo = " + ".join(product_names[:2]) if len(product_names) >= 2 else product_names[0]
+            for product in product_names:
+                confidence = 0.75 if product in set(map(str, self.product_ranking or [])) else 0.0
+                support = 0.25 if confidence > 0 else 0.0
+                lift = 1.0 if confidence > 0 else 0.0
+
+                recommendations.append(
+                    {
+                        "product": product,
+                        "confidence": confidence,
+                        "support": support,
+                        "lift": lift,
+                    }
+                )
+
+            top_combo = " + ".join((product_names + ranked_products)[:2]) if len(product_names) >= 2 or ranked_products else product_names[0]
 
             # Add required fields
             return {
