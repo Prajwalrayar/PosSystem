@@ -12,7 +12,7 @@ import {
   FileText,
   Tag,
   Truck,
-  CreditCard,
+  Brain,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { BadgeDollarSign } from "lucide-react";
@@ -63,6 +63,11 @@ const navLinks = [
     name: "Reports",
     path: "/store/reports",
     icon: <FileText className="w-5 h-5" />,
+  },
+  {
+    name: "Smart AI",
+    path: "/store/smart-ai",
+    icon: <Brain className="w-5 h-5" />,
   },
   {
     name: "Upgrade Plan",

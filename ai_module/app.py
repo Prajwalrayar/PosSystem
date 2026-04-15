@@ -1,26 +1,14 @@
-from flask import Flask, request, jsonify
-import joblib
+"""Backward-compatible launcher for the FastAPI service."""
 
-app = Flask(__name__)
-model = joblib.load("model.pkl")
+try:
+    from main import app
+except ImportError:  # pragma: no cover - supports package execution
+    from .main import app
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    data = request.json
 
-    features = [[
-        data["day_of_week"],
-        data["month"],
-        data["prev_sales"],
-        data["avg_7"],
-        data["avg_30"],
-        data["is_weekend"]
-    ]]
+if __name__ == "__main__":
+    import os
 
-    prediction = model.predict(features)[0]
+    import uvicorn
 
-    return jsonify({
-        "forecast": round(float(prediction), 2)
-    })
-
-app.run(port=5000)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8000")), reload=False)

@@ -4,7 +4,7 @@ import { Routes, Route } from "react-router";
 // Import SuperAdmin pages
 import SuperAdminDashboard from "../pages/SuperAdminDashboard/SuperAdminDashboard";
 import Dashboard from "../pages/SuperAdminDashboard/Dashboard";
-
+import SmartAiDashboard from "../components/SmartAiDashboard";
 
 import SubscriptionPlansPage from "../pages/SuperAdminDashboard/subscription/SubscriptionPlansPage";
 import StoreListPage from "../pages/SuperAdminDashboard/store/StoreListPage";
@@ -23,9 +23,10 @@ const SuperAdminRoutes = () => {
         <Route path="requests" element={<PendingRequestsPage />} />
         <Route path="subscriptions" element={<SubscriptionPlansPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="ai-dashboard" element={<SmartAiDashboard />} />
       </Route>
     </Routes>
   );
 };
 
-export default SuperAdminRoutes; 
+export default SuperAdminRoutes;

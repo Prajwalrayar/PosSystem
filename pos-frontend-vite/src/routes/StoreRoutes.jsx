@@ -19,6 +19,7 @@ import Stores from "../pages/store/storeInformation/Stores";
 import PricingSection from "../pages/common/Landing/PricingSection";
 import Upgrade from "../pages/store/upgrade/Upgrade";
 import Alerts from "../pages/store/Alerts/Alerts";
+import SmartAiModule from "../pages/store/Dashboard/SmartAiModule";
 
 const StoreRoutes = () => {
   return (
@@ -35,6 +36,7 @@ const StoreRoutes = () => {
         <Route path="sales" element={<Sales />} />
       
         <Route path="reports" element={<Reports />} />
+        <Route path="smart-ai" element={<SmartAiModule />} />
         <Route path="upgrade" element={<Upgrade />} />
         <Route path="settings" element={<Settings />} />
         <Route path="alerts" element={<Alerts />} />
