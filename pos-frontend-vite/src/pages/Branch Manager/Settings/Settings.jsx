@@ -93,7 +93,7 @@ const Settings = () => {
     acceptCash: true,
     acceptUPI: true,
     acceptCard: true,
-    upiId: "example@upi",
+    upiId: "",
     cardTerminalId: "TERM12345",
   });
 
@@ -112,8 +112,6 @@ const Settings = () => {
   const gatewayConfigured = Boolean(gatewayStatus?.configured);
   const gatewayMissingFields = gatewayStatus?.missingFields || [];
   const gatewayRequiredKeys = ["RAZORPAY_API_KEY", "RAZORPAY_API_SECRET"];
-  const gatewayWarningForUpi = paymentSettings.acceptUPI && !gatewayConfigured;
-  const gatewayWarningForCard = paymentSettings.acceptCard && !gatewayConfigured;
 
   const handlePrinterSettingsChange = (field, value) => {
     setPrinterSettings({
@@ -618,9 +616,6 @@ const Settings = () => {
                   <label htmlFor="accept-upi" className="text-sm font-medium">
                     Accept UPI Payments
                   </label>
-                  {gatewayWarningForUpi && (
-                    <Badge variant="destructive" className="mr-2">Gateway invalid</Badge>
-                  )}
                   <Switch
                     id="accept-upi"
                     checked={paymentSettings.acceptUPI}
@@ -652,9 +647,6 @@ const Settings = () => {
                   <label htmlFor="accept-card" className="text-sm font-medium">
                     Accept Card Payments
                   </label>
-                  {gatewayWarningForCard && (
-                    <Badge variant="destructive" className="mr-2">Gateway invalid</Badge>
-                  )}
                   <Switch
                     id="accept-card"
                     checked={paymentSettings.acceptCard}
@@ -685,13 +677,6 @@ const Settings = () => {
                     {fieldErrors["payment.cardTerminalId"] && (
                       <p className="text-xs text-red-600">{fieldErrors["payment.cardTerminalId"]}</p>
                     )}
-                  </div>
-                )}
-
-                {(gatewayWarningForUpi || gatewayWarningForCard) && (
-                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                    UPI/Card is enabled for this branch, but gateway configuration is invalid. Cashier can see UPI/Card,
-                    but checkout will block until backend gateway env vars are configured.
                   </div>
                 )}
               </div>

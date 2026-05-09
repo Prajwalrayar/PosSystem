@@ -43,6 +43,8 @@ const PaymentDialog = ({
   const cart = useSelector(selectCartItems);
   const branchState = useSelector((state) => state.branch);
   const branch = branchState?.branch;
+  const branchSettingsData = branchState?.branchSettings?.data?.data || branchState?.branchSettings?.data || {};
+  const branchUpiId = branchSettingsData?.payment?.upiId?.trim() || "";
   const { userProfile } = useSelector((state) => state.user);
   const customers = useSelector((state) => state.customer.customers || []);
   const { gatewayStatus, gatewayStatusLoading } = useSelector((state) => state.payment);
@@ -70,7 +72,8 @@ const PaymentDialog = ({
   const enabledPaymentMethods = paymentMethods.filter((method) =>
     allowedPaymentMethods.includes(method.key)
   );
-  const isGatewayMethodSelected = paymentMethod === "UPI" || paymentMethod === "CARD";
+  const isGatewayCheckoutMethod = paymentMethod === "UPI" || paymentMethod === "CARD";
+  const paymentActionLabel = paymentMethod === "UPI" ? "Pay with UPI" : "Complete Payment";
 
   React.useEffect(() => {
     dispatch(fetchPaymentGatewayStatus());
@@ -349,7 +352,7 @@ const PaymentDialog = ({
       throwIfPaymentCancelled();
       let paymentReference = null;
 
-      if (isGatewayMethodSelected) {
+      if (isGatewayCheckoutMethod) {
         const scriptLoaded = await loadRazorpayScript();
         throwIfPaymentCancelled();
         if (!scriptLoaded) {
@@ -496,6 +499,21 @@ const PaymentDialog = ({
             <p className="text-sm text-gray-600">Amount to be paid</p>
           </div>
 
+            {paymentMethod === "UPI" && (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-900">
+                <div className="font-semibold">Live UPI checkout</div>
+                <p className="mt-1 text-emerald-800">
+                  This branch uses the configured payment gateway for UPI, so the customer can complete payment from any
+                  UPI app and the cashier receives a real payment reference on success.
+                </p>
+                {branchUpiId && (
+                  <p className="mt-2 text-xs text-emerald-700">
+                    Branch UPI ID: <span className="font-medium">{branchUpiId}</span>
+                  </p>
+                )}
+              </div>
+            )}
+
           {isLoadingSettings ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mr-2" />
@@ -558,7 +576,7 @@ const PaymentDialog = ({
               enabledPaymentMethods.length === 0
             }
           >
-            {isProcessingPayment ? "Processing..." : "Complete Payment"}
+            {isProcessingPayment ? "Processing..." : paymentActionLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
